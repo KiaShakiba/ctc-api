@@ -1,0 +1,25 @@
+{
+  "name": "ctc-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KiaShakiba/ctc-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KiaShakiba/ctc-api/issues"
+  },
+  "homepage": "https://github.com/KiaShakiba/ctc-api#readme",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "node-forge": "^0.8.5",
+    "pg": "^7.11.0"
+  }
+}
