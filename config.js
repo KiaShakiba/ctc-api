@@ -3,7 +3,7 @@
 module.exports = {
 	PORT: process.env.PORT || 3300,
 	db: {
-		URL: process.env.DATABSE_URL,
+		URL: process.env.DATABASE_URL,
 		HOST: process.env.DB_HOST,
 		USERNAME: process.env.DB_USERNAME,
 		PASSWORD: process.env.DB_PASSWORD,
