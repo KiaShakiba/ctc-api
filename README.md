@@ -39,4 +39,22 @@ CREATE TABLE public.caesar
 		ON UPDATE CASCADE
 		ON DELETE CASCADE
 );
+
+CREATE TABLE public.rsa
+(
+    datetime_created timestamp with time zone NOT NULL DEFAULT now(),
+    datetime_submitted timestamp with time zone,
+    username character varying(16) COLLATE pg_catalog."default" NOT NULL,
+    p numeric NOT NULL,
+    q numeric NOT NULL,
+    e numeric NOT NULL,
+    d numeric NOT NULL,
+    m numeric,
+    c numeric,
+    type text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT rsa_fkey_username FOREIGN KEY (username)
+        REFERENCES public.users (username) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
 ```

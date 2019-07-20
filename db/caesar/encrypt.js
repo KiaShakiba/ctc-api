@@ -96,7 +96,7 @@ const getTime = async (
 			from caesar
 			where username=$1 and
 				key=$2 and
-				message=$3
+				message=$3 and
 				cipher=$4 and
 				type='encrypt'
 	`;

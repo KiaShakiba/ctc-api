@@ -2,13 +2,13 @@
 
 let Query = require('../query');
 
-const saveMessage = async (
+const saveCipher = async (
 	username,
 	p,
 	q,
 	e,
 	d,
-	m
+	c
 ) => {
 	let query = new Query();
 
@@ -16,13 +16,13 @@ const saveMessage = async (
 		with del as (
 			delete from rsa
 				where username=$1 and
-					c is null and
-					type='encrypt'
+					m is null and
+					type='decrypt'
 		)
 		insert into rsa
-			(username, p, q, e, d, m, type)
+			(username, p, q, e, d, c, type)
 				values
-			($1, $2, $3, $4, $5, $6, 'encrypt')
+			($1, $2, $3, $4, $5, $6, 'decrypt')
 	`;
 
 	query.values = [
@@ -31,7 +31,7 @@ const saveMessage = async (
 		q,
 		e,
 		d,
-		m
+		c
 	];
 
 	let result = await query.execute();
@@ -39,15 +39,15 @@ const saveMessage = async (
 	return result.rowCount === 1;
 };
 
-const getUnencrypted = async (username) => {
+const getEncrypted = async (username) => {
 	let query = new Query();
 
 	query.command = `
-		select p, q, e, d, m
+		select p, q, e, d, c
 			from rsa
 			where username=$1 and
-				c is null and
-				type='encrypt'
+				m is null and
+				type='decrypt'
 	`;
 
 	query.values = [username];
@@ -61,14 +61,14 @@ const getUnencrypted = async (username) => {
 	return result.rows[0];
 };
 
-const saveEncrypted = async (
+const saveDecrypted = async (
 	username,
 	p,
 	q,
 	e,
 	d,
-	m,
-	c
+	c,
+	m
 ) => {
 	let query = new Query();
 
@@ -76,14 +76,14 @@ const saveEncrypted = async (
 		update rsa
 			set
 				datetime_submitted=now(),
-				c=$7
+				m=$7
 			where username=$1 and
 				p=$2 and
 				q=$3 and
 				e=$4 and
 				d=$5 and
-				m=$6 and
-				type='encrypt'
+				c=$6 and
+				type='decrypt'
 	`;
 
 	query.values = [
@@ -92,8 +92,8 @@ const saveEncrypted = async (
 		q,
 		e,
 		d,
-		m,
-		c
+		c,
+		m
 	];
 
 	let result = await query.execute();
@@ -107,8 +107,8 @@ const getTime = async (
 	q,
 	e,
 	d,
-	m,
-	c
+	c,
+	m
 ) => {
 	let query = new Query();
 
@@ -122,9 +122,9 @@ const getTime = async (
 				q=$3 and
 				e=$4 and
 				d=$5 and
-				m=$6 and
-				c=$7 and
-				type='encrypt'
+				c=$6 and
+				m=$7 and
+				type='decrypt'
 	`;
 
 	query.values = [
@@ -133,8 +133,8 @@ const getTime = async (
 		q,
 		e,
 		d,
-		m,
-		c
+		c,
+		m
 	];
 
 	let result = await query.execute();
@@ -154,7 +154,7 @@ const getResults = async () => {
 				epoch from (datetime_submitted - datetime_created)
 			)) as time
 			from rsa
-			where c is not null and type='encrypt'
+			where m is not null and type='decrypt'
 			group by username
 			order by time asc
 	`;
@@ -169,8 +169,8 @@ const getResults = async () => {
 	return result.rows;
 };
 
-module.exports.saveMessage = saveMessage;
-module.exports.getUnencrypted = getUnencrypted;
-module.exports.saveEncrypted = saveEncrypted;
+module.exports.saveCipher = saveCipher;
+module.exports.getEncrypted = getEncrypted;
+module.exports.saveDecrypted = saveDecrypted;
 module.exports.getTime = getTime;
 module.exports.getResults = getResults;
