@@ -3,6 +3,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const config = require('./config');
+const secure = require('./middleware/secure');
 const cors = require('./middleware/cors');
 const user = require('./middleware/user');
 const errors = require('./middleware/errors');
@@ -17,6 +18,7 @@ const mathController = require('./controllers/math');
 
 app.enable('trust proxy');
 
+app.use(secure);
 app.use(cors);
 app.use(bodyParser.json());
 app.use(user);
