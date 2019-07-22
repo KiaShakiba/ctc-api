@@ -40,8 +40,8 @@ const getEncrypted = async (username) => {
 		select key, cipher
 			from caesar
 			where username=$1 and
-				message is null
-				and type='decrypt'
+				message is null and
+				type='decrypt'
 	`;
 
 	query.values = [username];
@@ -98,7 +98,7 @@ const getTime = async (
 			where username=$1 and
 				key=$2 and
 				message=$3 and
-				cipher=$4
+				cipher=$4 and
 				type='decrypt'
 	`;
 
