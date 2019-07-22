@@ -18,9 +18,9 @@ const mathController = require('./controllers/math');
 
 app.enable('trust proxy');
 
+app.use(bodyParser.json());
 app.use(secure);
 app.use(cors);
-app.use(bodyParser.json());
 app.use(user);
 
 app.get('/', (req, res, next) => {
