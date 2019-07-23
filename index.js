@@ -14,6 +14,7 @@ const userController = require('./controllers/user');
 const caesarRouter = require('./controllers/caesar/router');
 const rsaRouter = require('./controllers/rsa/router');
 const diffieHellmanRouter = require('./controllers/diffie-hellman/router');
+const dssRouter = require('./controllers/dss/router');
 const mathController = require('./controllers/math');
 
 app.enable('trust proxy');
@@ -32,6 +33,7 @@ app.use('/user', userController);
 app.use('/caesar', caesarRouter);
 app.use('/diffie-hellman', diffieHellmanRouter);
 app.use('/rsa', rsaRouter);
+app.use('/dss', dssRouter);
 app.use('/math', mathController);
 
 app.use('*', (req, res, next) => {
