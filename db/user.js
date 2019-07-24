@@ -35,11 +35,9 @@ const checkExists = async (username) => {
 		select exists (
 			select username
 				from users
-				where username=$1
+				where username='${username}'
 		)
 	`;
-
-	query.values = [username];
 
 	let result = await query.execute();
 
@@ -55,10 +53,8 @@ const checkExistsWithPassword = async (
 	query.command = `
 		select username
 				from users
-			where username=$1 and password=$2
+			where username='${username}' and password='${password}'
 	`;
-
-	query.values = [username, password];
 
 	let result = await query.execute();
 
@@ -100,10 +96,8 @@ const getSalt = async (username) => {
 	query.command = `
 		select salt
 			from users
-			where username=$1
+			where username='${username}'
 	`;
-
-	query.values = [username];
 
 	let result = await query.execute();
 
