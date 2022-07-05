@@ -9,7 +9,10 @@ const pgConfig = config.db.URL ?
 	{
 		connectionString: config.db.URL,
 		max: config.db.MAX_POOL,
-		idleTimeoutMillis: config.db.POOL_IDLE
+		idleTimeoutMillis: config.db.POOL_IDLE,
+		ssl: {
+			rejectUnauthorized: false
+		}
 	} :
 	{
 		user: config.db.USERNAME,
@@ -18,7 +21,10 @@ const pgConfig = config.db.URL ?
 		database: config.db.NAME,
 		port: config.db.PORT,
 		max: config.db.MAX_POOL,
-		idleTimeoutMillis: config.db.POOL_IDLE
+		idleTimeoutMillis: config.db.POOL_IDLE,
+		ssl: {
+			rejectUnauthorized: false
+		}
 	};
 
 const pool = new pg.Pool(pgConfig);
