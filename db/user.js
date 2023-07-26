@@ -62,7 +62,7 @@ const checkExistsWithPassword = async (
 		return null;
 	}
 
-	return result.rows[0];
+	return result.rows[0].username;
 };
 
 const create = async (
