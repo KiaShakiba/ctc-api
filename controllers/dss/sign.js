@@ -19,6 +19,9 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['pk', 'r', 's']);
+	check.isValidNumber(req.body.pk);
+	check.isValidNumber(req.body.r);
+	check.isValidNumber(req.body.s);
 	check.signedIn(req);
 
 	let submitted = dssSign.submit(

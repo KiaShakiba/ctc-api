@@ -19,6 +19,7 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['key']);
+	check.isValidNumber(req.body.key);
 	check.signedIn(req);
 
 	let submitted = caesarAttack.submit(

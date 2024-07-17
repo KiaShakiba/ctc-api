@@ -3,8 +3,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const config = require('./config');
+
 const secure = require('./middleware/secure');
 const cors = require('./middleware/cors');
+const rate = require('./middleware/rate');
 const user = require('./middleware/user');
 const errors = require('./middleware/errors');
 
@@ -22,6 +24,7 @@ app.enable('trust proxy');
 app.use(bodyParser.json());
 app.use(secure);
 app.use(cors);
+app.use(rate);
 app.use(user);
 
 app.get('/', (req, res, next) => {

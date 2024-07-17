@@ -8,6 +8,12 @@ let router = express.Router();
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['p', 'q', 'e', 'd', 'message', 'cipher']);
+	check.isValidNumber(req.body.p);
+	check.isValidNumber(req.body.q);
+	check.isValidNumber(req.body.e);
+	check.isValidNumber(req.body.d);
+	check.isValidNumber(req.body.message);
+	check.isValidNumber(req.body.cipher);
 	check.signedIn(req);
 
 	let submitted = rsaVerify.submit(

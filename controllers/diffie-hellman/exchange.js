@@ -19,6 +19,8 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['pk', 'k']);
+	check.isValidNumber(req.body.pk);
+	check.isValidNumber(req.body.k);
 	check.signedIn(req);
 
 	let submitted = diffieHellmanExchange.submit(

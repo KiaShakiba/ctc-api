@@ -19,6 +19,7 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['cipher']);
+	check.isValidNumber(req.body.cipher);
 	check.signedIn(req);
 
 	let submitted = rsaEncrypt.submit(

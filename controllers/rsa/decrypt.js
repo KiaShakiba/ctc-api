@@ -19,6 +19,7 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['message']);
+	check.isValidNumber(req.body.message);
 	check.signedIn(req);
 
 	let submitted = rsaDecrypt.submit(

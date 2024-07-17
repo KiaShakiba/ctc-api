@@ -28,7 +28,14 @@ const admin = (user) => {
 	}
 };
 
+const isValidNumber = (num) => {
+	if (num.toString().length > 10) {
+		throw new ClientError(400, 'The value you have supplied is either not valid or too big.');
+	}
+};
+
 module.exports.contains = contains;
 module.exports.signedIn = signedIn;
 module.exports.signedOut = signedOut;
 module.exports.admin = admin;
+module.exports.isValidNumber = isValidNumber;

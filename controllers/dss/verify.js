@@ -19,6 +19,9 @@ router.get('/', (req, res, next) => {
 
 router.post('/', (req, res, next) => {
 	check.contains(req.body, ['u', 'v', 'w']);
+	check.isValidNumber(req.body.u);
+	check.isValidNumber(req.body.v);
+	check.isValidNumber(req.body.w);
 	check.signedIn(req);
 
 	let submitted = dssVerify.submit(
