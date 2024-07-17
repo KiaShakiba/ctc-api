@@ -82,4 +82,21 @@ CREATE TABLE public.dss
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
+CREATE TABLE public.diffie_hellman
+(
+    datetime_created timestamp with time zone NOT NULL DEFAULT now(),
+    datetime_submitted timestamp with time zone,
+    username character varying(16) COLLATE pg_catalog."default" NOT NULL,
+    g numeric not null,
+    n numeric not null,
+    sk_server numeric not null,
+    pk_user numeric,
+    k numeric,
+    type text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT diffie_hellman_fkey_username FOREIGN KEY (username)
+        REFERENCES public.users (username) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
 ```
