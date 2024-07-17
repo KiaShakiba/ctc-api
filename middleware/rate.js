@@ -4,7 +4,7 @@ const { rateLimit } = require('express-rate-limit');
 
 const limiter = rateLimit({
 	windowMs: 1000,
-	limit: 1,
+	limit: 3,
 	message: 'You\'re making too many requests! Slow down!',
 	standardHeaders: 'draft-7',
 	keyGenerator: getBearerToken,
