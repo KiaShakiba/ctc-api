@@ -1,0 +1,27 @@
+[package]
+name = "ctc-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+tokio = { version = "1", features = ["full"] }
+dotenvy = "0.15.7"
+serde = { version = "1.0.217", features = ["derive"] }
+axum = { version = "0.8.1", features = ["multipart", "macros", "ws"] }
+diesel = { version = "2.2.7", features = ["postgres", "r2d2", "chrono"] }
+diesel-async = { version = "0.6.1", features = ["postgres", "deadpool"] }
+deadpool-diesel = { version = "0.6.1", features = ["postgres"] }
+tower-http = { version = "0.6.2", features = ["cors", "compression-gzip"] }
+regex = "1.11.1"
+chrono = { version = "0.4.39", features = ["serde"] }
+axum-valid = "0.24.0"
+validator = { version = "0.20.0", features = ["derive"] }
+paper-client = "1.10.2"
+argon2 = "0.5.3"
+once_cell = "1.21.3"
+postcard = { version = "1.1.3", features = ["alloc"] }
+rand = "0.9.2"
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"
