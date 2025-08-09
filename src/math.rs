@@ -1,6 +1,13 @@
 use num_traits::AsPrimitive;
 use primal_sieve::Sieve;
 
+pub fn safe_mod(num: impl AsPrimitive<i64>, modulus: impl AsPrimitive<i64>) -> u64 {
+	let num = num.as_();
+	let modulus = modulus.as_();
+
+	num.rem_euclid(modulus) as u64
+}
+
 pub fn power_mod(
 	num: impl AsPrimitive<u64>,
 	exp: impl AsPrimitive<u64>,
@@ -10,15 +17,15 @@ pub fn power_mod(
 	let modulus = modulus.as_();
 
 	let mut result = 1;
-	let mut num = num.as_() % modulus;
+	let mut num = safe_mod(num.as_(), modulus);
 
 	while exp > 0 {
 		if exp & 1 > 0 {
-			result = (result * num) % modulus;
+			result = safe_mod(result * num, modulus);
 		}
 
 		exp >>= 1;
-		num = num.pow(2) % modulus;
+		num = safe_mod(num.pow(2), modulus);
 	}
 
 	result
@@ -39,7 +46,7 @@ pub fn prime_factors(num: impl AsPrimitive<u64>) -> Vec<u64> {
 	}
 
 	for i in (3..=num.isqrt()).step_by(2) {
-		while num % i == 0 {
+		while safe_mod(num, i) == 0 {
 			factors.push(i);
 			num /= i;
 		}
@@ -81,15 +88,22 @@ pub fn gcd(a: impl AsPrimitive<u64>, b: impl AsPrimitive<u64>) -> u64 {
 		return a;
 	}
 
-	gcd(b, a % b)
+	gcd(b, safe_mod(a, b))
 }
 
 pub fn inverse_mod(num: impl AsPrimitive<u64>, modulus: impl AsPrimitive<u64>) -> Option<u64> {
 	let num = num.as_();
 	let modulus = modulus.as_();
 
-	let a = num % modulus;
-	(1..modulus).find(|i| (a * i) % modulus == 1)
+	let a = safe_mod(num, modulus);
+	(1..modulus).find(|i| safe_mod(a * i, modulus) == 1)
+}
+
+pub fn order(num: impl AsPrimitive<u64>, p: impl AsPrimitive<u64>) -> Option<u64> {
+	let num = num.as_();
+	let p = p.as_();
+
+	(1..=p).find(|i| power_mod(num, *i, p) == 1)
 }
 
 #[cfg(test)]
@@ -97,7 +111,14 @@ mod tests {
 	use crate::math::*;
 
 	#[test]
-	fn it_calculates_power_mods_correctly() {
+	fn it_calculates_safe_mods() {
+		assert_eq!(5, safe_mod(125, 20));
+		assert_eq!(8, safe_mod(600, 37));
+		assert_eq!(10, safe_mod(-523, 13));
+	}
+
+	#[test]
+	fn it_calculates_power_mods() {
 		assert_eq!(101, power_mod(8, 20, 125));
 		assert_eq!(12, power_mod(3, 5, 21));
 		assert_eq!(68, power_mod(18, 325, 500));
@@ -141,5 +162,12 @@ mod tests {
 		assert_eq!(Some(4), inverse_mod(16, 7));
 		assert_eq!(Some(13), inverse_mod(225, 17));
 		assert_eq!(Some(10), inverse_mod(1543, 37));
+	}
+
+	#[test]
+	fn it_calculates_orders() {
+		assert_eq!(Some(3), order(16, 7));
+		assert_eq!(Some(4), order(225, 17));
+		assert_eq!(Some(3), order(1543, 37));
 	}
 }
