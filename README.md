@@ -1,102 +1,23 @@
 # ctc-api
 
-# Database
-
+# .env
 ```
-CREATE TABLE public.users
-(
-	datetime timestamp with time zone NOT NULL DEFAULT now(),
-	username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-	password character(1024) COLLATE pg_catalog."default" NOT NULL,
-	salt character(128) COLLATE pg_catalog."default" NOT NULL,
-	type text COLLATE pg_catalog."default" NOT NULL DEFAULT 'student'::text,
-	CONSTRAINT users_pkey PRIMARY KEY (username)
-);
+PORT=3000
+DATABASE_URL=postgres://username:password@localhost/ctc
+CACHE_URL=paper://localhost:3145
 
-CREATE TABLE public.sessions
-(
-	datetime timestamp with time zone NOT NULL DEFAULT now(),
-	username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-	token character(512) COLLATE pg_catalog."default" NOT NULL,
-	CONSTRAINT sessions_pkey PRIMARY KEY (token),
-	CONSTRAINT sessions_fkey_username FOREIGN KEY (username)
-	REFERENCES public.users (username) MATCH SIMPLE
-		ON UPDATE CASCADE
-		ON DELETE CASCADE
-);
+MAX_REQUESTS_PER_SECOND=3
 
-CREATE TABLE public.caesar
-(
-	datetime_created timestamp with time zone NOT NULL DEFAULT now(),
-	datetime_submitted timestamp with time zone,
-	username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-	key numeric,
-	message text COLLATE pg_catalog."default",
-	cipher text COLLATE pg_catalog."default",
-	type text COLLATE pg_catalog."default" NOT NULL,
-	CONSTRAINT caesar_fkey_username FOREIGN KEY (username)
-	REFERENCES public.users (username) MATCH SIMPLE
-		ON UPDATE CASCADE
-		ON DELETE CASCADE
-);
+CAESAR_ENCRYPTION_MESSAGE_SIZE=6
+CAESAR_DECRYPTION_CIPHER_SIZE=6
+CAESAR_ATTACK_MESSAGE_SIZE=6
 
-CREATE TABLE public.rsa
-(
-    datetime_created timestamp with time zone NOT NULL DEFAULT now(),
-    datetime_submitted timestamp with time zone,
-    username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-    p numeric NOT NULL,
-    q numeric NOT NULL,
-    e numeric NOT NULL,
-    d numeric NOT NULL,
-    m numeric,
-    c numeric,
-    type text COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT rsa_fkey_username FOREIGN KEY (username)
-        REFERENCES public.users (username) MATCH SIMPLE
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
+DIFFIE_HELLMAN_N_MIN=1000
+DIFFIE_HELLMAN_N_MAX=10000
 
-CREATE TABLE public.dss
-(
-    datetime_created timestamp with time zone NOT NULL DEFAULT now(),
-    datetime_submitted timestamp with time zone,
-    username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-    p numeric NOT NULL,
-    q numeric NOT NULL,
-    g numeric NOT NULL,
-    h text,
-    r numeric,
-    s numeric,
-    sk numeric,
-    pk numeric,
-    k numeric,
-    u numeric,
-    v numeric,
-    w numeric,
-    m numeric NOT NULL,
-    type text COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT rsa_fkey_username FOREIGN KEY (username)
-        REFERENCES public.users (username) MATCH SIMPLE
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
+RSA_PQ_MIN=1000
+RSA_PQ_MAX=10000
 
-CREATE TABLE public.diffie_hellman
-(
-    datetime_created timestamp with time zone NOT NULL DEFAULT now(),
-    datetime_submitted timestamp with time zone,
-    username character varying(16) COLLATE pg_catalog."default" NOT NULL,
-    g numeric not null,
-    n numeric not null,
-    sk_server numeric not null,
-    pk_user numeric,
-    k numeric,
-    type text COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT diffie_hellman_fkey_username FOREIGN KEY (username)
-        REFERENCES public.users (username) MATCH SIMPLE
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
+DSS_P_MIN=1000
+DSS_P_MAX=10000
 ```

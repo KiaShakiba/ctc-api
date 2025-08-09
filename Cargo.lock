@@ -406,6 +406,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "dotenvy",
+ "kwik",
  "num-traits",
  "once_cell",
  "paper-client",

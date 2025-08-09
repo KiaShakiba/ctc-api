@@ -36,6 +36,7 @@ async fn main() -> anyhow::Result<()> {
 
 	let app = Router::new()
 		.merge(routes::guarded_router())
+		.layer(axum::middleware::from_fn_with_state(state.clone(), middleware::rate::rate))
 		.layer(axum::middleware::from_fn_with_state(state.clone(), middleware::auth::auth))
 		.merge(routes::unguarded_router())
 		.layer(CompressionLayer::new())
