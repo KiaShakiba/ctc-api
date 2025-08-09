@@ -46,6 +46,34 @@ diesel::table! {
 }
 
 diesel::table! {
+    rsa_decrypts (id) {
+        id -> Int4,
+        user_id -> Int4,
+        n_p -> Int8,
+        n_q -> Int8,
+        e -> Int8,
+        d -> Int8,
+        c -> Int8,
+        created_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    rsa_encrypts (id) {
+        id -> Int4,
+        user_id -> Int4,
+        n_p -> Int8,
+        n_q -> Int8,
+        e -> Int8,
+        d -> Int8,
+        m -> Int8,
+        created_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Int4,
         username -> Text,
@@ -57,11 +85,15 @@ diesel::joinable!(caesar_attacks -> users (user_id));
 diesel::joinable!(caesar_decrypts -> users (user_id));
 diesel::joinable!(caesar_encrypts -> users (user_id));
 diesel::joinable!(diffie_hellman_exchanges -> users (user_id));
+diesel::joinable!(rsa_decrypts -> users (user_id));
+diesel::joinable!(rsa_encrypts -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     caesar_attacks,
     caesar_decrypts,
     caesar_encrypts,
     diffie_hellman_exchanges,
+    rsa_decrypts,
+    rsa_encrypts,
     users,
 );

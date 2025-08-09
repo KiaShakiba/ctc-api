@@ -73,6 +73,25 @@ pub fn primitive(num: impl AsPrimitive<u64>) -> Option<u64> {
 	None
 }
 
+pub fn gcd(a: impl AsPrimitive<u64>, b: impl AsPrimitive<u64>) -> u64 {
+	let a = a.as_();
+	let b = b.as_();
+
+	if b == 0 {
+		return a;
+	}
+
+	gcd(b, a % b)
+}
+
+pub fn inverse_mod(num: impl AsPrimitive<u64>, modulus: impl AsPrimitive<u64>) -> Option<u64> {
+	let num = num.as_();
+	let modulus = modulus.as_();
+
+	let a = num % modulus;
+	(1..modulus).find(|i| (a * i) % modulus == 1)
+}
+
 #[cfg(test)]
 mod tests {
 	use crate::math::*;
@@ -108,5 +127,19 @@ mod tests {
 		assert_eq!(Some(3), primitive(7477));
 		assert_eq!(None, primitive(125));
 		assert_eq!(None, primitive(620));
+	}
+
+	#[test]
+	fn it_finds_gcds() {
+		assert_eq!(5, gcd(20, 125));
+		assert_eq!(25, gcd(600, 325));
+		assert_eq!(1, gcd(27, 1543));
+	}
+
+	#[test]
+	fn it_finds_inverse_mods() {
+		assert_eq!(Some(4), inverse_mod(16, 7));
+		assert_eq!(Some(13), inverse_mod(225, 17));
+		assert_eq!(Some(10), inverse_mod(1543, 37));
 	}
 }

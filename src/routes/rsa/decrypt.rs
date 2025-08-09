@@ -14,46 +14,45 @@ use crate::{
 	state::AppState,
 	models::{
 		user::User,
-		caesar::{CaesarAttack, CaesarAttackPublic},
+		rsa::{RsaDecrypt, RsaDecryptPublic},
 	},
 	leaderboard::{Leaderboard, LeaderboardResult},
 };
 
 #[derive(Deserialize, Validate)]
-struct SubmitAttackBody {
-	#[validate(range(min = 0, max = 25, message = "Key must be in the range [0, 25]."))]
-	key: i32,
+struct SubmitDecryptBody {
+	m: u64,
 }
 
-async fn create_attack(
+async fn create_decrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-) -> Result<(StatusCode, Json<CaesarAttackPublic>), Error> {
-	if let Some(existing) = CaesarAttack::find_user_incomplete(&state, user.id).await? {
-		let public: CaesarAttackPublic = existing.into();
+) -> Result<(StatusCode, Json<RsaDecryptPublic>), Error> {
+	if let Some(existing) = RsaDecrypt::find_user_incomplete(&state, user.id).await? {
+		let public: RsaDecryptPublic = existing.into();
 		return Ok((StatusCode::OK, Json(public)));
 	}
 
-	let attack = CaesarAttack::create(&state, user.id).await?;
-	let public: CaesarAttackPublic = attack.into();
+	let decrypt = RsaDecrypt::create(&state, user.id).await?;
+	let public: RsaDecryptPublic = decrypt.into();
 
 	Ok((StatusCode::CREATED, Json(public)))
 }
 
-async fn submit_attack(
+async fn submit_decrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-	Valid(Json(body)): Valid<Json<SubmitAttackBody>>,
+	Valid(Json(body)): Valid<Json<SubmitDecryptBody>>,
 ) -> Result<(StatusCode, String), Error> {
-	let Some(incomplete) = CaesarAttack::find_user_incomplete(&state, user.id).await? else {
+	let Some(incomplete) = RsaDecrypt::find_user_incomplete(&state, user.id).await? else {
 		let error = Error::default()
 			.with_code(StatusCode::BAD_REQUEST)
-			.with_message("No active caesar attack session found.");
+			.with_message("No active rsa decrypt session found.");
 
 		return Err(error);
 	};
 
-	let duration = incomplete.try_into_completed(&state, body.key).await?;
+	let duration = incomplete.try_into_completed(&state, body.m).await?;
 	let message = format!("Correct! This attempt took {duration:?}.");
 
 	Ok((StatusCode::OK, message))
@@ -64,7 +63,7 @@ async fn get_leaderboard(
 ) -> Result<Json<Vec<LeaderboardResult>>, Error> {
 	let mut leaderboard = Leaderboard::default();
 
-	for completed in CaesarAttack::find_all_completed(&state).await? {
+	for completed in RsaDecrypt::find_all_completed(&state).await? {
 		let duration = completed.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -88,7 +87,7 @@ async fn get_leaderboard(
 
 pub fn guarded_router() -> Router<AppState> {
 	Router::new()
-		.route("/", get(create_attack))
-		.route("/", post(submit_attack))
+		.route("/", get(create_decrypt))
+		.route("/", post(submit_decrypt))
 		.route("/leaderboard", get(get_leaderboard))
 }

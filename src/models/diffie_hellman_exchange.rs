@@ -93,8 +93,13 @@ impl DiffieHellmanExchange {
 	}
 
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
-		let n_min = env::var("DIFFIE_HELLMAN_N_MIN")?.parse::<usize>()?;
-		let n_max = env::var("DIFFIE_HELLMAN_N_MAX")?.parse::<usize>()?;
+		let n_min = env::var("DIFFIE_HELLMAN_N_MIN").ok()
+			.and_then(|value| value.parse::<usize>().ok())
+			.unwrap_or(1_000);
+
+		let n_max = env::var("DIFFIE_HELLMAN_N_MAX").ok()
+			.and_then(|value| value.parse::<usize>().ok())
+			.unwrap_or(10_000);
 
 		let n = Sieve::new(n_max)
 			.primes_from(n_min)
@@ -130,8 +135,6 @@ impl DiffieHellmanExchange {
 	}
 
 	pub async fn try_into_completed(self, state: &AppState, pk_user: u64, k: u64) -> Result<Duration, Error> {
-		let mut db = state.db().await?;
-
 		if k != math::power_mod(pk_user, self.sk_server, self.n) {
 			let error = Error::default()
 				.with_code(StatusCode::BAD_REQUEST)
@@ -139,6 +142,8 @@ impl DiffieHellmanExchange {
 
 			return Err(error);
 		}
+
+		let mut db = state.db().await?;
 
 		let completed = diesel::update(schema::diffie_hellman_exchanges::dsl::diffie_hellman_exchanges.find(self.id))
 			.set(schema::diffie_hellman_exchanges::dsl::completed_at.eq(diesel::dsl::now))
