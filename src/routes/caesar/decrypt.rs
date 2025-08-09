@@ -25,7 +25,7 @@ struct SubmitDecryptionBody {
 	message: String,
 }
 
-async fn create_encypt(
+async fn create_decrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
 ) -> Result<(StatusCode, Json<CaesarDecryptionPublic>), Error> {
@@ -40,7 +40,7 @@ async fn create_encypt(
 	Ok((StatusCode::CREATED, Json(public)))
 }
 
-async fn submit_encypt(
+async fn submit_decrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
 	Valid(Json(body)): Valid<Json<SubmitDecryptionBody>>,
@@ -88,7 +88,7 @@ async fn get_leaderboard(
 
 pub fn guarded_router() -> Router<AppState> {
 	Router::new()
-		.route("/", get(create_encypt))
-		.route("/", post(submit_encypt))
+		.route("/", get(create_decrypt))
+		.route("/", post(submit_decrypt))
 		.route("/leaderboard", get(get_leaderboard))
 }
