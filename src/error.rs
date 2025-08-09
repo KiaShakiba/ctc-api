@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 use diesel::result::Error as DieselError;
 use deadpool_diesel::InteractError;
 use paper_client::PaperClientError;
+use postcard::Error as PostcardError;
 
 use axum::{
 	Error as AxumError,
@@ -93,6 +94,12 @@ impl From<InteractError> for Error {
 
 impl From<PaperClientError> for Error {
 	fn from(_: PaperClientError) -> Self {
+		Error::default()
+	}
+}
+
+impl From<PostcardError> for Error {
+	fn from(_: PostcardError) -> Self {
 		Error::default()
 	}
 }

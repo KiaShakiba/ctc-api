@@ -1,4 +1,3 @@
-use axum::http::StatusCode;
 use serde::{Serialize, Deserialize};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -8,14 +7,14 @@ use postcard::{to_allocvec, from_bytes};
 use crate::{
 	schema,
 	error::Error,
-	state::AppState,
+	state::{AppState, Cachable},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
 #[diesel(table_name = schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
-	id: i32,
+	pub id: i32,
 
 	pub username: String,
 	pub password_hash: String,
@@ -32,8 +31,8 @@ impl User {
 	pub fn init_bearer_token(&self, state: &AppState) -> Result<String, Error> {
 		let bearer_token = Alphanumeric.sample_string(&mut rand::rng(), 32);
 
+		let cache_bytes = to_allocvec(self)?;
 		let mut cache = state.cache();
-		let cache_bytes = to_allocvec(self).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		cache.set(
 			format!("bearer:{bearer_token}"),
@@ -42,6 +41,26 @@ impl User {
 		)?;
 
 		Ok(bearer_token)
+	}
+
+	pub async fn find_by_id(state: &AppState, id: i32) -> Result<Option<Self>, Error> {
+		if let Some(cached) = User::from_cached(state.cache(), id)? {
+			return Ok(Some(cached));
+		}
+
+		let mut db = state.db().await?;
+
+		let maybe_user = schema::users::dsl::users
+			.find(id)
+			.select(User::as_select())
+			.first(&mut db).await
+			.optional()?;
+
+		if let Some(user) = &maybe_user {
+			user.to_cached(state.cache(), user.id)?;
+		}
+
+		Ok(maybe_user)
 	}
 
 	pub async fn find_by_username(state: &AppState, username: &str) -> Result<Option<Self>, Error> {
@@ -57,12 +76,15 @@ impl User {
 
 	pub async fn find_by_bearer(state: &AppState, bearer_token: &str) -> Result<Option<Self>, Error> {
 		let mut cache = state.cache();
+		let key = format!("bearer:{bearer_token}");
 
-		let Ok(cache_bytes) = cache.get(format!("bearer:{bearer_token}")) else {
+		let Ok(cache_bytes) = cache.get(&key) else {
 			return Ok(None);
 		};
 
-		let user: User = from_bytes((&cache_bytes).into()).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+		cache.ttl(key, Some(3_600))?;
+
+		let user: User = from_bytes((&cache_bytes).into())?;
 		Ok(Some(user))
 	}
 
@@ -74,6 +96,16 @@ impl User {
 			.returning(User::as_returning())
 			.get_result(&mut db).await?;
 
+		user.to_cached(state.cache(), user.id)?;
+
 		Ok(user)
+	}
+}
+
+impl Cachable for User {
+	type Id = i32;
+
+	fn cache_key(id: Self::Id) -> String {
+		format!("user:{id}")
 	}
 }

@@ -4,6 +4,7 @@ mod middleware;
 mod routes;
 mod schema;
 mod models;
+mod leaderboard;
 
 use std::env;
 use tokio::net::TcpListener;
