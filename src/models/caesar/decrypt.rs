@@ -17,9 +17,9 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
-#[diesel(table_name = schema::caesar_decryptions)]
+#[diesel(table_name = schema::caesar_decrypts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct CaesarDecryption {
+pub struct CaesarDecrypt {
 	id: i32,
 	pub user_id: i32,
 
@@ -33,8 +33,8 @@ pub struct CaesarDecryption {
 
 
 #[derive(Insertable)]
-#[diesel(table_name = schema::caesar_decryptions)]
-struct NewCaesarDecryption {
+#[diesel(table_name = schema::caesar_decrypts)]
+struct NewCaesarDecrypt {
 	user_id: i32,
 
 	key: i32,
@@ -42,12 +42,12 @@ struct NewCaesarDecryption {
 }
 
 #[derive(Serialize)]
-pub struct CaesarDecryptionPublic {
+pub struct CaesarDecryptPublic {
 	key: i32,
 	cipher: String,
 }
 
-impl CaesarDecryption {
+impl CaesarDecrypt {
 	pub fn completed_duration(&self) -> Option<Duration> {
 		let delta = self.completed_at?.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
@@ -59,16 +59,16 @@ impl CaesarDecryption {
 		state: &AppState,
 		user_id: i32,
 	) -> Result<Option<Self>, Error> {
-		if let Some(cached_incomplete) = CaesarDecryption::from_cached(state.cache(), user_id)? {
+		if let Some(cached_incomplete) = CaesarDecrypt::from_cached(state.cache(), user_id)? {
 			return Ok(Some(cached_incomplete));
 		}
 
 		let mut db = state.db().await?;
 
-		let maybe_got = schema::caesar_decryptions::dsl::caesar_decryptions
-			.filter(schema::caesar_decryptions::user_id.eq(user_id))
-			.filter(schema::caesar_decryptions::message.is_null())
-			.select(CaesarDecryption::as_select())
+		let maybe_got = schema::caesar_decrypts::dsl::caesar_decrypts
+			.filter(schema::caesar_decrypts::user_id.eq(user_id))
+			.filter(schema::caesar_decrypts::message.is_null())
+			.select(CaesarDecrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
 			.next();
@@ -92,7 +92,7 @@ impl CaesarDecryption {
 			cipher_size,
 		).to_uppercase();
 
-		let new_decryption = NewCaesarDecryption {
+		let new_decrypt = NewCaesarDecrypt {
 			user_id,
 
 			key,
@@ -101,14 +101,14 @@ impl CaesarDecryption {
 
 		let mut db = state.db().await?;
 
-		let decryption = diesel::insert_into(schema::caesar_decryptions::table)
-			.values(&new_decryption)
-			.returning(CaesarDecryption::as_returning())
+		let decrypt = diesel::insert_into(schema::caesar_decrypts::table)
+			.values(&new_decrypt)
+			.returning(CaesarDecrypt::as_returning())
 			.get_result(&mut db).await?;
 
-		decryption.to_cached(state.cache(), user_id)?;
+		decrypt.to_cached(state.cache(), user_id)?;
 
-		Ok(decryption)
+		Ok(decrypt)
 	}
 
 	pub async fn try_into_completed(self, state: &AppState, message: String) -> Result<Duration, Error> {
@@ -137,14 +137,14 @@ impl CaesarDecryption {
 
 		let mut db = state.db().await?;
 
-		let completed = diesel::update(schema::caesar_decryptions::dsl::caesar_decryptions.find(self.id))
+		let completed = diesel::update(schema::caesar_decrypts::dsl::caesar_decrypts.find(self.id))
 			.set((
-				schema::caesar_decryptions::dsl::message.eq(message),
-				schema::caesar_decryptions::dsl::completed_at.eq(diesel::dsl::now),
+				schema::caesar_decrypts::dsl::message.eq(message),
+				schema::caesar_decrypts::dsl::completed_at.eq(diesel::dsl::now),
 			))
 			.get_result::<Self>(&mut db).await?;
 
-		CaesarDecryption::purge_cache(state.cache(), self.user_id)?;
+		CaesarDecrypt::purge_cache(state.cache(), self.user_id)?;
 
 		let duration = completed.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -155,9 +155,9 @@ impl CaesarDecryption {
 	pub async fn find_all_completed(state: &AppState) -> Result<Vec<Self>, Error> {
 		let mut db = state.db().await?;
 
-		let got = schema::caesar_decryptions::dsl::caesar_decryptions
-			.filter(schema::caesar_decryptions::message.is_not_null())
-			.select(CaesarDecryption::as_select())
+		let got = schema::caesar_decrypts::dsl::caesar_decrypts
+			.filter(schema::caesar_decrypts::message.is_not_null())
+			.select(CaesarDecrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
 			.collect();
@@ -166,19 +166,19 @@ impl CaesarDecryption {
 	}
 }
 
-impl Cachable for CaesarDecryption {
+impl Cachable for CaesarDecrypt {
 	type Id = i32;
 
 	fn cache_key(user_id: Self::Id) -> String {
-		format!("caesar:decryption:{user_id}:incomplete")
+		format!("caesar:decrypt:{user_id}:incomplete")
 	}
 }
 
-impl From<CaesarDecryption> for CaesarDecryptionPublic {
-	fn from(decryption: CaesarDecryption) -> Self {
-		CaesarDecryptionPublic {
-			key: decryption.key,
-			cipher: decryption.cipher,
+impl From<CaesarDecrypt> for CaesarDecryptPublic {
+	fn from(decrypt: CaesarDecrypt) -> Self {
+		CaesarDecryptPublic {
+			key: decrypt.key,
+			cipher: decrypt.cipher,
 		}
 	}
 }

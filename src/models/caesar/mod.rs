@@ -1,8 +1,8 @@
-mod encryption;
-pub use crate::models::caesar::encryption::*;
+mod encrypt;
+pub use crate::models::caesar::encrypt::*;
 
-mod decryption;
-pub use crate::models::caesar::decryption::*;
+mod decrypt;
+pub use crate::models::caesar::decrypt::*;
 
 mod attack;
 pub use crate::models::caesar::attack::*;

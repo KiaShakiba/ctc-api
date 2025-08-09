@@ -14,13 +14,13 @@ use crate::{
 	state::AppState,
 	models::{
 		user::User,
-		caesar::{CaesarEncryption, CaesarEncryptionPublic},
+		caesar::{CaesarEncrypt, CaesarEncryptPublic},
 	},
 	leaderboard::{Leaderboard, LeaderboardResult},
 };
 
 #[derive(Deserialize, Validate)]
-struct SubmitEncryptionBody {
+struct SubmitEncryptBody {
 	#[validate(length(min = 1, message = "Cipher cannot be empty."))]
 	cipher: String,
 }
@@ -28,14 +28,14 @@ struct SubmitEncryptionBody {
 async fn create_encrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-) -> Result<(StatusCode, Json<CaesarEncryptionPublic>), Error> {
-	if let Some(existing) = CaesarEncryption::find_user_incomplete(&state, user.id).await? {
-		let public: CaesarEncryptionPublic = existing.into();
+) -> Result<(StatusCode, Json<CaesarEncryptPublic>), Error> {
+	if let Some(existing) = CaesarEncrypt::find_user_incomplete(&state, user.id).await? {
+		let public: CaesarEncryptPublic = existing.into();
 		return Ok((StatusCode::OK, Json(public)));
 	}
 
-	let encryption = CaesarEncryption::create(&state, user.id).await?;
-	let public: CaesarEncryptionPublic = encryption.into();
+	let encrypt = CaesarEncrypt::create(&state, user.id).await?;
+	let public: CaesarEncryptPublic = encrypt.into();
 
 	Ok((StatusCode::CREATED, Json(public)))
 }
@@ -43,12 +43,12 @@ async fn create_encrypt(
 async fn submit_encrypt(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-	Valid(Json(body)): Valid<Json<SubmitEncryptionBody>>,
+	Valid(Json(body)): Valid<Json<SubmitEncryptBody>>,
 ) -> Result<(StatusCode, String), Error> {
-	let Some(incomplete) = CaesarEncryption::find_user_incomplete(&state, user.id).await? else {
+	let Some(incomplete) = CaesarEncrypt::find_user_incomplete(&state, user.id).await? else {
 		let error = Error::default()
 			.with_code(StatusCode::BAD_REQUEST)
-			.with_message("No active caesar encryption session found.");
+			.with_message("No active caesar encrypt session found.");
 
 		return Err(error);
 	};
@@ -64,7 +64,7 @@ async fn get_leaderboard(
 ) -> Result<Json<Vec<LeaderboardResult>>, Error> {
 	let mut leaderboard = Leaderboard::default();
 
-	for completed in CaesarEncryption::find_all_completed(&state).await? {
+	for completed in CaesarEncrypt::find_all_completed(&state).await? {
 		let duration = completed.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 

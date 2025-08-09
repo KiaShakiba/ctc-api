@@ -17,9 +17,9 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
-#[diesel(table_name = schema::caesar_encryptions)]
+#[diesel(table_name = schema::caesar_encrypts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct CaesarEncryption {
+pub struct CaesarEncrypt {
 	id: i32,
 	pub user_id: i32,
 
@@ -33,8 +33,8 @@ pub struct CaesarEncryption {
 
 
 #[derive(Insertable)]
-#[diesel(table_name = schema::caesar_encryptions)]
-struct NewCaesarEncryption {
+#[diesel(table_name = schema::caesar_encrypts)]
+struct NewCaesarEncrypt {
 	user_id: i32,
 
 	key: i32,
@@ -42,12 +42,12 @@ struct NewCaesarEncryption {
 }
 
 #[derive(Serialize)]
-pub struct CaesarEncryptionPublic {
+pub struct CaesarEncryptPublic {
 	key: i32,
 	message: String,
 }
 
-impl CaesarEncryption {
+impl CaesarEncrypt {
 	pub fn completed_duration(&self) -> Option<Duration> {
 		let delta = self.completed_at?.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
@@ -59,16 +59,16 @@ impl CaesarEncryption {
 		state: &AppState,
 		user_id: i32,
 	) -> Result<Option<Self>, Error> {
-		if let Some(cached_incomplete) = CaesarEncryption::from_cached(state.cache(), user_id)? {
+		if let Some(cached_incomplete) = CaesarEncrypt::from_cached(state.cache(), user_id)? {
 			return Ok(Some(cached_incomplete));
 		}
 
 		let mut db = state.db().await?;
 
-		let maybe_got = schema::caesar_encryptions::dsl::caesar_encryptions
-			.filter(schema::caesar_encryptions::user_id.eq(user_id))
-			.filter(schema::caesar_encryptions::cipher.is_null())
-			.select(CaesarEncryption::as_select())
+		let maybe_got = schema::caesar_encrypts::dsl::caesar_encrypts
+			.filter(schema::caesar_encrypts::user_id.eq(user_id))
+			.filter(schema::caesar_encrypts::cipher.is_null())
+			.select(CaesarEncrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
 			.next();
@@ -92,7 +92,7 @@ impl CaesarEncryption {
 			message_size,
 		).to_uppercase();
 
-		let new_encryption = NewCaesarEncryption {
+		let new_encrypt = NewCaesarEncrypt {
 			user_id,
 
 			key,
@@ -101,14 +101,14 @@ impl CaesarEncryption {
 
 		let mut db = state.db().await?;
 
-		let encryption = diesel::insert_into(schema::caesar_encryptions::table)
-			.values(&new_encryption)
-			.returning(CaesarEncryption::as_returning())
+		let encrypt = diesel::insert_into(schema::caesar_encrypts::table)
+			.values(&new_encrypt)
+			.returning(CaesarEncrypt::as_returning())
 			.get_result(&mut db).await?;
 
-		encryption.to_cached(state.cache(), user_id)?;
+		encrypt.to_cached(state.cache(), user_id)?;
 
-		Ok(encryption)
+		Ok(encrypt)
 	}
 
 	pub async fn try_into_completed(self, state: &AppState, cipher: String) -> Result<Duration, Error> {
@@ -132,14 +132,14 @@ impl CaesarEncryption {
 
 		let mut db = state.db().await?;
 
-		let completed = diesel::update(schema::caesar_encryptions::dsl::caesar_encryptions.find(self.id))
+		let completed = diesel::update(schema::caesar_encrypts::dsl::caesar_encrypts.find(self.id))
 			.set((
-				schema::caesar_encryptions::dsl::cipher.eq(cipher),
-				schema::caesar_encryptions::dsl::completed_at.eq(diesel::dsl::now),
+				schema::caesar_encrypts::dsl::cipher.eq(cipher),
+				schema::caesar_encrypts::dsl::completed_at.eq(diesel::dsl::now),
 			))
 			.get_result::<Self>(&mut db).await?;
 
-		CaesarEncryption::purge_cache(state.cache(), self.user_id)?;
+		CaesarEncrypt::purge_cache(state.cache(), self.user_id)?;
 
 		let duration = completed.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -150,9 +150,9 @@ impl CaesarEncryption {
 	pub async fn find_all_completed(state: &AppState) -> Result<Vec<Self>, Error> {
 		let mut db = state.db().await?;
 
-		let got = schema::caesar_encryptions::dsl::caesar_encryptions
-			.filter(schema::caesar_encryptions::cipher.is_not_null())
-			.select(CaesarEncryption::as_select())
+		let got = schema::caesar_encrypts::dsl::caesar_encrypts
+			.filter(schema::caesar_encrypts::cipher.is_not_null())
+			.select(CaesarEncrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
 			.collect();
@@ -161,19 +161,19 @@ impl CaesarEncryption {
 	}
 }
 
-impl Cachable for CaesarEncryption {
+impl Cachable for CaesarEncrypt {
 	type Id = i32;
 
 	fn cache_key(user_id: Self::Id) -> String {
-		format!("caesar:encryption:{user_id}:incomplete")
+		format!("caesar:encrypt:{user_id}:incomplete")
 	}
 }
 
-impl From<CaesarEncryption> for CaesarEncryptionPublic {
-	fn from(encryption: CaesarEncryption) -> Self {
-		CaesarEncryptionPublic {
-			key: encryption.key,
-			message: encryption.message,
+impl From<CaesarEncrypt> for CaesarEncryptPublic {
+	fn from(encrypt: CaesarEncrypt) -> Self {
+		CaesarEncryptPublic {
+			key: encrypt.key,
+			message: encrypt.message,
 		}
 	}
 }

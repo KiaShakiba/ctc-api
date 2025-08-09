@@ -13,7 +13,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    caesar_decryptions (id) {
+    caesar_decrypts (id) {
         id -> Int4,
         user_id -> Int4,
         key -> Int4,
@@ -25,7 +25,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    caesar_encryptions (id) {
+    caesar_encrypts (id) {
         id -> Int4,
         user_id -> Int4,
         key -> Int4,
@@ -45,12 +45,12 @@ diesel::table! {
 }
 
 diesel::joinable!(caesar_attacks -> users (user_id));
-diesel::joinable!(caesar_decryptions -> users (user_id));
-diesel::joinable!(caesar_encryptions -> users (user_id));
+diesel::joinable!(caesar_decrypts -> users (user_id));
+diesel::joinable!(caesar_encrypts -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     caesar_attacks,
-    caesar_decryptions,
-    caesar_encryptions,
+    caesar_decrypts,
+    caesar_encrypts,
     users,
 );
