@@ -67,7 +67,7 @@ impl CaesarEncrypt {
 
 		let maybe_got = schema::caesar_encrypts::dsl::caesar_encrypts
 			.filter(schema::caesar_encrypts::user_id.eq(user_id))
-			.filter(schema::caesar_encrypts::cipher.is_null())
+			.filter(schema::caesar_encrypts::completed_at.is_null())
 			.select(CaesarEncrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
@@ -151,7 +151,7 @@ impl CaesarEncrypt {
 		let mut db = state.db().await?;
 
 		let got = schema::caesar_encrypts::dsl::caesar_encrypts
-			.filter(schema::caesar_encrypts::cipher.is_not_null())
+			.filter(schema::caesar_encrypts::completed_at.is_not_null())
 			.select(CaesarEncrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()

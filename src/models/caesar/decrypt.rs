@@ -67,7 +67,7 @@ impl CaesarDecrypt {
 
 		let maybe_got = schema::caesar_decrypts::dsl::caesar_decrypts
 			.filter(schema::caesar_decrypts::user_id.eq(user_id))
-			.filter(schema::caesar_decrypts::message.is_null())
+			.filter(schema::caesar_decrypts::completed_at.is_null())
 			.select(CaesarDecrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()
@@ -156,7 +156,7 @@ impl CaesarDecrypt {
 		let mut db = state.db().await?;
 
 		let got = schema::caesar_decrypts::dsl::caesar_decrypts
-			.filter(schema::caesar_decrypts::message.is_not_null())
+			.filter(schema::caesar_decrypts::completed_at.is_not_null())
 			.select(CaesarDecrypt::as_select())
 			.load(&mut db).await?
 			.into_iter()

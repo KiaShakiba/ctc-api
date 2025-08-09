@@ -5,6 +5,7 @@ mod routes;
 mod schema;
 mod models;
 mod leaderboard;
+mod math;
 
 use std::env;
 use tokio::net::TcpListener;

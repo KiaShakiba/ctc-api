@@ -35,14 +35,14 @@ pub struct AppState {
 
 impl AppState {
 	pub async fn init() -> anyhow::Result<Self> {
-		let db_addr = env::var("DATABASE_URL").map_err(|_| Error::default())?;
+		let db_addr = env::var("DATABASE_URL")?;
 		let db_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_addr);
 
 		let db = Pool::builder(db_manager)
 			.build()
 			.map_err(|_| Error::default())?;
 
-		let cache_addr = env::var("CACHE_URL").map_err(|_| Error::default())?;
+		let cache_addr = env::var("CACHE_URL")?;
 		let cache = PaperPool::new(cache_addr, 4)?;
 
 		let state = AppState {

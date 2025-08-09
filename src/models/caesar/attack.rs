@@ -67,7 +67,7 @@ impl CaesarAttack {
 
 		let maybe_got = schema::caesar_attacks::dsl::caesar_attacks
 			.filter(schema::caesar_attacks::user_id.eq(user_id))
-			.filter(schema::caesar_attacks::key.is_null())
+			.filter(schema::caesar_attacks::completed_at.is_null())
 			.select(CaesarAttack::as_select())
 			.load(&mut db).await?
 			.into_iter()
@@ -161,7 +161,7 @@ impl CaesarAttack {
 		let mut db = state.db().await?;
 
 		let got = schema::caesar_attacks::dsl::caesar_attacks
-			.filter(schema::caesar_attacks::key.is_not_null())
+			.filter(schema::caesar_attacks::completed_at.is_not_null())
 			.select(CaesarAttack::as_select())
 			.load(&mut db).await?
 			.into_iter()

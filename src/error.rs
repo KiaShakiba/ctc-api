@@ -1,4 +1,9 @@
-use std::fmt::{self, Display};
+use std::{
+	fmt::{self, Display},
+	env::VarError,
+	num::ParseIntError,
+};
+
 use diesel::result::Error as DieselError;
 use deadpool_diesel::InteractError;
 use paper_client::PaperClientError;
@@ -77,6 +82,18 @@ impl PartialEq<StatusCode> for &Error {
 impl Default for Error {
 	fn default() -> Self {
 		StatusCode::INTERNAL_SERVER_ERROR.into()
+	}
+}
+
+impl From<VarError> for Error {
+	fn from(_: VarError) -> Self {
+		Error::default()
+	}
+}
+
+impl From<ParseIntError> for Error {
+	fn from(_: ParseIntError) -> Self {
+		Error::default()
 	}
 }
 
