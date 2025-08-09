@@ -23,7 +23,6 @@ pub struct CaesarAttack {
 	id: i32,
 	pub user_id: i32,
 
-	key: Option<i32>,
 	message: String,
 	cipher: String,
 
@@ -143,10 +142,7 @@ impl CaesarAttack {
 		let mut db = state.db().await?;
 
 		let completed = diesel::update(schema::caesar_attacks::dsl::caesar_attacks.find(self.id))
-			.set((
-				schema::caesar_attacks::dsl::key.eq(key),
-				schema::caesar_attacks::dsl::completed_at.eq(diesel::dsl::now),
-			))
+			.set(schema::caesar_attacks::dsl::completed_at.eq(diesel::dsl::now))
 			.get_result::<Self>(&mut db).await?;
 
 		CaesarAttack::purge_cache(state.cache(), self.user_id)?;

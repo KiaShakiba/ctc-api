@@ -4,7 +4,6 @@ diesel::table! {
     caesar_attacks (id) {
         id -> Int4,
         user_id -> Int4,
-        key -> Nullable<Int4>,
         message -> Text,
         cipher -> Text,
         created_at -> Timestamptz,
@@ -17,7 +16,6 @@ diesel::table! {
         id -> Int4,
         user_id -> Int4,
         key -> Int4,
-        message -> Nullable<Text>,
         cipher -> Text,
         created_at -> Timestamptz,
         completed_at -> Nullable<Timestamptz>,
@@ -30,7 +28,6 @@ diesel::table! {
         user_id -> Int4,
         key -> Int4,
         message -> Text,
-        cipher -> Nullable<Text>,
         created_at -> Timestamptz,
         completed_at -> Nullable<Timestamptz>,
     }
@@ -43,8 +40,6 @@ diesel::table! {
         g -> Int8,
         n -> Int8,
         sk_server -> Int8,
-        pk_user -> Nullable<Int8>,
-        k -> Nullable<Int8>,
         created_at -> Timestamptz,
         completed_at -> Nullable<Timestamptz>,
     }

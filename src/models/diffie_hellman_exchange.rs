@@ -32,8 +32,6 @@ pub struct DiffieHellmanExchange {
 	g: i64,
 	n: i64,
 	sk_server: i64,
-	pk_user: Option<i64>,
-	k: Option<i64>,
 
 	created_at: DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
@@ -143,11 +141,7 @@ impl DiffieHellmanExchange {
 		}
 
 		let completed = diesel::update(schema::diffie_hellman_exchanges::dsl::diffie_hellman_exchanges.find(self.id))
-			.set((
-				schema::diffie_hellman_exchanges::dsl::pk_user.eq(pk_user as i64),
-				schema::diffie_hellman_exchanges::dsl::k.eq(k as i64),
-				schema::diffie_hellman_exchanges::dsl::completed_at.eq(diesel::dsl::now),
-			))
+			.set(schema::diffie_hellman_exchanges::dsl::completed_at.eq(diesel::dsl::now))
 			.get_result::<Self>(&mut db).await?;
 
 		DiffieHellmanExchange::purge_cache(state.cache(), self.user_id)?;

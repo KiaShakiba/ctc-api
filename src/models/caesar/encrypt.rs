@@ -25,7 +25,6 @@ pub struct CaesarEncrypt {
 
 	key: i32,
 	message: String,
-	cipher: Option<String>,
 
 	created_at: DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
@@ -133,11 +132,8 @@ impl CaesarEncrypt {
 		let mut db = state.db().await?;
 
 		let completed = diesel::update(schema::caesar_encrypts::dsl::caesar_encrypts.find(self.id))
-			.set((
-				schema::caesar_encrypts::dsl::cipher.eq(cipher),
-				schema::caesar_encrypts::dsl::completed_at.eq(diesel::dsl::now),
-			))
-			.get_result::<Self>(&mut db).await?;
+			.set(schema::caesar_encrypts::dsl::completed_at.eq(diesel::dsl::now))
+ 			.get_result::<Self>(&mut db).await?;
 
 		CaesarEncrypt::purge_cache(state.cache(), self.user_id)?;
 

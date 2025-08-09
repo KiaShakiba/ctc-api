@@ -24,7 +24,6 @@ pub struct CaesarDecrypt {
 	pub user_id: i32,
 
 	key: i32,
-	message: Option<String>,
 	cipher: String,
 
 	created_at: DateTime<Utc>,
@@ -138,10 +137,7 @@ impl CaesarDecrypt {
 		let mut db = state.db().await?;
 
 		let completed = diesel::update(schema::caesar_decrypts::dsl::caesar_decrypts.find(self.id))
-			.set((
-				schema::caesar_decrypts::dsl::message.eq(message),
-				schema::caesar_decrypts::dsl::completed_at.eq(diesel::dsl::now),
-			))
+			.set(schema::caesar_decrypts::dsl::completed_at.eq(diesel::dsl::now))
 			.get_result::<Self>(&mut db).await?;
 
 		CaesarDecrypt::purge_cache(state.cache(), self.user_id)?;
