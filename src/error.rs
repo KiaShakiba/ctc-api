@@ -2,6 +2,7 @@ use std::{
 	fmt::{self, Display},
 	env::VarError,
 	num::ParseIntError,
+	string::FromUtf8Error,
 };
 
 use diesel::result::Error as DieselError;
@@ -93,6 +94,12 @@ impl From<VarError> for Error {
 
 impl From<ParseIntError> for Error {
 	fn from(_: ParseIntError) -> Self {
+		Error::default()
+	}
+}
+
+impl From<FromUtf8Error> for Error {
+	fn from(_: FromUtf8Error) -> Self {
 		Error::default()
 	}
 }

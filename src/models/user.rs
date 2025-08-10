@@ -7,7 +7,7 @@ use postcard::{to_allocvec, from_bytes};
 use crate::{
 	schema,
 	error::Error,
-	state::{AppState, Cachable},
+	state::{AppState, Cachable, DEFAULT_TTL},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
@@ -29,18 +29,25 @@ pub struct NewUser {
 
 impl User {
 	pub fn init_bearer_token(&self, state: &AppState) -> Result<String, Error> {
-		let bearer_token = Alphanumeric.sample_string(&mut rand::rng(), 32);
-
-		let cache_bytes = to_allocvec(self)?;
+		let user_key = format!("user:{}:bearer", self.id);
 		let mut cache = state.cache();
 
-		cache.set(
-			format!("bearer:{bearer_token}"),
-			cache_bytes,
-			Some(3_600),
-		)?;
+		if let Ok(bearer_token_bytes) = cache.get(&user_key)
+			&& let Ok(bearer_token) = TryInto::<String>::try_into(bearer_token_bytes)
+		{
+			cache.ttl(user_key, DEFAULT_TTL)?;
+			cache.ttl(format!("bearer:{bearer_token}"), DEFAULT_TTL)?;
 
-		Ok(bearer_token)
+			return Ok(bearer_token);
+		}
+
+		let new_bearer_token = Alphanumeric.sample_string(&mut rand::rng(), 32);
+		let cache_bytes = to_allocvec(self)?;
+
+		cache.set(user_key, &new_bearer_token, DEFAULT_TTL)?;
+		cache.set(format!("bearer:{new_bearer_token}"), cache_bytes, DEFAULT_TTL)?;
+
+		Ok(new_bearer_token)
 	}
 
 	pub async fn find_by_id(state: &AppState, id: i32) -> Result<Option<Self>, Error> {
@@ -75,16 +82,18 @@ impl User {
 	}
 
 	pub async fn find_by_bearer(state: &AppState, bearer_token: &str) -> Result<Option<Self>, Error> {
+		let bearer_key = format!("bearer:{bearer_token}");
 		let mut cache = state.cache();
-		let key = format!("bearer:{bearer_token}");
 
-		let Ok(cache_bytes) = cache.get(&key) else {
+		let Ok(cache_bytes) = cache.get(&bearer_key) else {
 			return Ok(None);
 		};
 
-		cache.ttl(key, Some(3_600))?;
-
 		let user: User = from_bytes((&cache_bytes).into())?;
+
+		cache.ttl(format!("user:{}:bearer", user.id), DEFAULT_TTL)?;
+		cache.ttl(bearer_key, DEFAULT_TTL)?;
+
 		Ok(Some(user))
 	}
 

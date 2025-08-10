@@ -27,6 +27,8 @@ use crate::error::Error;
 
 type DbConnection = Object<AsyncPgConnection>;
 
+pub const DEFAULT_TTL: Option<u32> = Some(3_600);
+
 #[derive(Clone)]
 pub struct AppState {
 	db: Pool<AsyncPgConnection>,
@@ -78,7 +80,7 @@ pub trait Cachable {
 		Self: Serialize,
 	{
 		let bytes = to_allocvec(self)?;
-		cache.set(Self::cache_key(id), bytes, Some(3_600))?;
+		cache.set(Self::cache_key(id), bytes, DEFAULT_TTL)?;
 
 		Ok(())
 	}
