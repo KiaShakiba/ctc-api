@@ -1,6 +1,6 @@
 # ctc-api
 
-# .env
+## .env
 ```
 PORT=3000
 DATABASE_URL=postgres://username:password@localhost/ctc
