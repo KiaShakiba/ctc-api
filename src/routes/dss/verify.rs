@@ -20,10 +20,10 @@ use crate::{
 };
 
 #[derive(Deserialize, Validate)]
-struct SubmitEncryptBody {
-	pk: u64,
-	r: u64,
-	s: u64,
+struct SubmitVerifyBody {
+	u: u64,
+	v: u64,
+	w: u64,
 }
 
 async fn create_verify(
@@ -44,7 +44,7 @@ async fn create_verify(
 async fn submit_verify(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-	Valid(Json(body)): Valid<Json<SubmitEncryptBody>>,
+	Valid(Json(body)): Valid<Json<SubmitVerifyBody>>,
 ) -> Result<(StatusCode, String), Error> {
 	let Some(incomplete) = DssVerify::find_user_incomplete(&state, user.id).await? else {
 		let error = Error::default()
@@ -54,7 +54,7 @@ async fn submit_verify(
 		return Err(error);
 	};
 
-	let duration = incomplete.try_into_completed(&state, body.pk, body.r, body.s).await?;
+	let duration = incomplete.try_into_completed(&state, body.u, body.v, body.w).await?;
 	let message = format!("Correct! This attempt took {duration:?}.");
 
 	Ok((StatusCode::OK, message))

@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[derive(Deserialize, Validate)]
-struct SubmitEncryptBody {
+struct SubmitSignBody {
 	pk: u64,
 	r: u64,
 	s: u64,
@@ -44,7 +44,7 @@ async fn create_sign(
 async fn submit_sign(
 	State(state): State<AppState>,
 	Extension(user): Extension<User>,
-	Valid(Json(body)): Valid<Json<SubmitEncryptBody>>,
+	Valid(Json(body)): Valid<Json<SubmitSignBody>>,
 ) -> Result<(StatusCode, String), Error> {
 	let Some(incomplete) = DssSign::find_user_incomplete(&state, user.id).await? else {
 		let error = Error::default()
