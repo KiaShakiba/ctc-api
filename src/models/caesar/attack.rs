@@ -13,7 +13,7 @@ use rand::distr::{Alphabetic, SampleString};
 use crate::{
 	schema,
 	error::Error,
-	state::{AppState, Cachable},
+	state::{AppState, Cacheable},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
@@ -167,7 +167,7 @@ impl CaesarAttack {
 	}
 }
 
-impl Cachable for CaesarAttack {
+impl Cacheable for CaesarAttack {
 	type Id = i32;
 
 	fn cache_key(user_id: Self::Id) -> String {

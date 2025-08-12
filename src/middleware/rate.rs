@@ -12,7 +12,7 @@ use axum::{
 
 use crate::{
 	error::Error,
-	state::{AppState, Cachable},
+	state::{AppState, Cacheable},
 	models::user::User,
 };
 
@@ -71,7 +71,7 @@ impl AccessPeriod {
 	}
 }
 
-impl Cachable for AccessPeriod {
+impl Cacheable for AccessPeriod {
 	type Id = i32;
 
 	fn cache_key(id: Self::Id) -> String {

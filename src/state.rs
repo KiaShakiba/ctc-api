@@ -66,7 +66,7 @@ impl AppState {
 	}
 }
 
-pub trait Cachable {
+pub trait Cacheable {
 	type Id;
 
 	fn cache_key(id: Self::Id) -> String;

@@ -7,7 +7,7 @@ use postcard::{to_allocvec, from_bytes};
 use crate::{
 	schema,
 	error::Error,
-	state::{AppState, Cachable, DEFAULT_TTL},
+	state::{AppState, Cacheable, DEFAULT_TTL},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
@@ -111,7 +111,7 @@ impl User {
 	}
 }
 
-impl Cachable for User {
+impl Cacheable for User {
 	type Id = i32;
 
 	fn cache_key(id: Self::Id) -> String {

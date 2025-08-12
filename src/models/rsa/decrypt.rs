@@ -19,7 +19,7 @@ use crate::{
 	schema,
 	math,
 	error::Error,
-	state::{AppState, Cachable},
+	state::{AppState, Cacheable},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable)]
@@ -213,7 +213,7 @@ impl RsaDecrypt {
 	}
 }
 
-impl Cachable for RsaDecrypt {
+impl Cacheable for RsaDecrypt {
 	type Id = i32;
 
 	fn cache_key(user_id: Self::Id) -> String {
