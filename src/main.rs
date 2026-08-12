@@ -21,7 +21,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-	dotenvy::dotenv()?;
+	let _ = dotenvy::dotenv();
 
 	let subscriber = tracing_subscriber::FmtSubscriber::new();
 	tracing::subscriber::set_global_default(subscriber)?;
