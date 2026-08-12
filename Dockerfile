@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 RUN apt-get update -y && apt-get install -y pkg-config libssl-dev libpq-dev
 
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml Cargo.lock diesel.toml ./
 COPY ./migrations ./migrations
 COPY ./src ./src
 
