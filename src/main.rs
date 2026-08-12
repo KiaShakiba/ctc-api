@@ -26,8 +26,9 @@ async fn main() -> anyhow::Result<()> {
 	let subscriber = tracing_subscriber::FmtSubscriber::new();
 	tracing::subscriber::set_global_default(subscriber)?;
 
+	let host = env::var("HOST")?;
 	let port = env::var("PORT")?;
-	let addr = format!("[::1]:{port}");
+	let addr = format!("{host}:{port}");
 
 	let state = AppState::init().await?;
 
