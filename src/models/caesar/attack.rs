@@ -1,18 +1,15 @@
-use std::{
-	env,
-	time::Duration,
-};
+use std::{env, time::Duration};
 
 use axum::http::StatusCode;
-use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use chrono::{DateTime, Utc};
 use rand::distr::{Alphabetic, SampleString};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
 	error::Error,
+	schema,
 	state::{AppState, Cacheable},
 };
 
@@ -20,16 +17,15 @@ use crate::{
 #[diesel(table_name = schema::caesar_attacks)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct CaesarAttack {
-	id: i32,
+	id:          i32,
 	pub user_id: i32,
 
 	message: String,
-	cipher: String,
+	cipher:  String,
 
-	created_at: DateTime<Utc>,
+	created_at:   DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::caesar_attacks)]
@@ -37,18 +33,20 @@ struct NewCaesarAttack {
 	user_id: i32,
 
 	message: String,
-	cipher: String,
+	cipher:  String,
 }
 
 #[derive(Serialize)]
 pub struct CaesarAttackPublic {
 	message: String,
-	cipher: String,
+	cipher:  String,
 }
 
 impl CaesarAttack {
 	pub fn completed_duration(&self) -> Option<Duration> {
-		let delta = self.completed_at?.signed_duration_since(self.created_at);
+		let delta = self
+			.completed_at?
+			.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
 
 		Some(Duration::from_nanos(nanoseconds))
@@ -68,7 +66,8 @@ impl CaesarAttack {
 			.filter(schema::caesar_attacks::user_id.eq(user_id))
 			.filter(schema::caesar_attacks::completed_at.is_null())
 			.select(CaesarAttack::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.next();
 
@@ -82,14 +81,14 @@ impl CaesarAttack {
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
 		let key = rand::random_range(8..=18);
 
-		let message_size = env::var("CAESAR_ATTACK_MESSAGE_SIZE").ok()
+		let message_size = env::var("CAESAR_ATTACK_MESSAGE_SIZE")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(6);
 
-		let message = Alphabetic.sample_string(
-			&mut rand::rng(),
-			message_size,
-		).to_uppercase();
+		let message = Alphabetic
+			.sample_string(&mut rand::rng(), message_size)
+			.to_uppercase();
 
 		let cipher = message
 			.chars()
@@ -113,7 +112,8 @@ impl CaesarAttack {
 		let attack = diesel::insert_into(schema::caesar_attacks::table)
 			.values(&new_attack)
 			.returning(CaesarAttack::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		attack.to_cached(state.cache(), user_id)?;
 
@@ -121,7 +121,8 @@ impl CaesarAttack {
 	}
 
 	pub async fn try_into_completed(self, state: &AppState, key: i32) -> Result<Duration, Error> {
-		let encrypted = self.message
+		let encrypted = self
+			.message
 			.chars()
 			.map(|char| {
 				let old_ascii_index = char as u8 - 65;
@@ -143,11 +144,13 @@ impl CaesarAttack {
 
 		let completed = diesel::update(schema::caesar_attacks::dsl::caesar_attacks.find(self.id))
 			.set(schema::caesar_attacks::dsl::completed_at.eq(diesel::dsl::now))
-			.get_result::<Self>(&mut db).await?;
+			.get_result::<Self>(&mut db)
+			.await?;
 
 		CaesarAttack::purge_cache(state.cache(), self.user_id)?;
 
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		Ok(duration)
@@ -159,7 +162,8 @@ impl CaesarAttack {
 		let got = schema::caesar_attacks::dsl::caesar_attacks
 			.filter(schema::caesar_attacks::completed_at.is_not_null())
 			.select(CaesarAttack::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.collect();
 
@@ -179,7 +183,7 @@ impl From<CaesarAttack> for CaesarAttackPublic {
 	fn from(attack: CaesarAttack) -> Self {
 		CaesarAttackPublic {
 			message: attack.message,
-			cipher: attack.cipher,
+			cipher:  attack.cipher,
 		}
 	}
 }

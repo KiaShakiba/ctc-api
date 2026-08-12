@@ -1,24 +1,17 @@
-use std::{
-	env,
-	time::Duration,
-};
+use std::{env, time::Duration};
 
 use axum::http::StatusCode;
-use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use chrono::{DateTime, Utc};
 use primal_sieve::Sieve;
-
-use rand::{
-	Rng,
-	seq::IteratorRandom,
-};
+use rand::seq::IteratorRandom;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
-	math,
 	error::Error,
+	math,
+	schema,
 	state::{AppState, Cacheable},
 };
 
@@ -26,38 +19,39 @@ use crate::{
 #[diesel(table_name = schema::diffie_hellman_exchanges)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DiffieHellmanExchange {
-	id: i32,
+	id:          i32,
 	pub user_id: i32,
 
-	g: i64,
-	n: i64,
+	g:         i64,
+	n:         i64,
 	sk_server: i64,
 
-	created_at: DateTime<Utc>,
+	created_at:   DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::diffie_hellman_exchanges)]
 struct NewDiffieHellmanExchange {
 	user_id: i32,
 
-	g: i64,
-	n: i64,
+	g:         i64,
+	n:         i64,
 	sk_server: i64,
 }
 
 #[derive(Serialize)]
 pub struct DiffieHellmanExchangePublic {
-	g: u64,
-	n: u64,
+	g:         u64,
+	n:         u64,
 	pk_server: u64,
 }
 
 impl DiffieHellmanExchange {
 	pub fn completed_duration(&self) -> Option<Duration> {
-		let delta = self.completed_at?.signed_duration_since(self.created_at);
+		let delta = self
+			.completed_at?
+			.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
 
 		Some(Duration::from_nanos(nanoseconds))
@@ -71,7 +65,8 @@ impl DiffieHellmanExchange {
 		state: &AppState,
 		user_id: i32,
 	) -> Result<Option<Self>, Error> {
-		if let Some(cached_incomplete) = DiffieHellmanExchange::from_cached(state.cache(), user_id)? {
+		if let Some(cached_incomplete) = DiffieHellmanExchange::from_cached(state.cache(), user_id)?
+		{
 			return Ok(Some(cached_incomplete));
 		}
 
@@ -81,7 +76,8 @@ impl DiffieHellmanExchange {
 			.filter(schema::diffie_hellman_exchanges::user_id.eq(user_id))
 			.filter(schema::diffie_hellman_exchanges::completed_at.is_null())
 			.select(DiffieHellmanExchange::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.next();
 
@@ -93,11 +89,13 @@ impl DiffieHellmanExchange {
 	}
 
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
-		let n_min = env::var("DIFFIE_HELLMAN_N_MIN").ok()
+		let n_min = env::var("DIFFIE_HELLMAN_N_MIN")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(1_000);
 
-		let n_max = env::var("DIFFIE_HELLMAN_N_MAX").ok()
+		let n_max = env::var("DIFFIE_HELLMAN_N_MAX")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(10_000);
 
@@ -107,12 +105,11 @@ impl DiffieHellmanExchange {
 			.choose(&mut rand::rng())
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-		let g = math::primitive(n)
-			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+		let g = math::primitive(n).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		let sk_server_min = n / 2;
 		let sk_server_max = n - 1;
-		let sk_server = rand::rng().random_range(sk_server_min..=sk_server_max);
+		let sk_server = rand::random_range(sk_server_min..=sk_server_max);
 
 		let new_exchange = NewDiffieHellmanExchange {
 			user_id,
@@ -127,14 +124,20 @@ impl DiffieHellmanExchange {
 		let exchange = diesel::insert_into(schema::diffie_hellman_exchanges::table)
 			.values(&new_exchange)
 			.returning(DiffieHellmanExchange::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		exchange.to_cached(state.cache(), user_id)?;
 
 		Ok(exchange)
 	}
 
-	pub async fn try_into_completed(self, state: &AppState, pk_user: u64, k: u64) -> Result<Duration, Error> {
+	pub async fn try_into_completed(
+		self,
+		state: &AppState,
+		pk_user: u64,
+		k: u64,
+	) -> Result<Duration, Error> {
 		if k != math::power_mod(pk_user, self.sk_server, self.n) {
 			let error = Error::default()
 				.with_code(StatusCode::BAD_REQUEST)
@@ -145,13 +148,17 @@ impl DiffieHellmanExchange {
 
 		let mut db = state.db().await?;
 
-		let completed = diesel::update(schema::diffie_hellman_exchanges::dsl::diffie_hellman_exchanges.find(self.id))
-			.set(schema::diffie_hellman_exchanges::dsl::completed_at.eq(diesel::dsl::now))
-			.get_result::<Self>(&mut db).await?;
+		let completed = diesel::update(
+			schema::diffie_hellman_exchanges::dsl::diffie_hellman_exchanges.find(self.id),
+		)
+		.set(schema::diffie_hellman_exchanges::dsl::completed_at.eq(diesel::dsl::now))
+		.get_result::<Self>(&mut db)
+		.await?;
 
 		DiffieHellmanExchange::purge_cache(state.cache(), self.user_id)?;
 
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		Ok(duration)
@@ -163,7 +170,8 @@ impl DiffieHellmanExchange {
 		let got = schema::diffie_hellman_exchanges::dsl::diffie_hellman_exchanges
 			.filter(schema::diffie_hellman_exchanges::completed_at.is_not_null())
 			.select(DiffieHellmanExchange::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.collect();
 
@@ -182,8 +190,8 @@ impl Cacheable for DiffieHellmanExchange {
 impl From<DiffieHellmanExchange> for DiffieHellmanExchangePublic {
 	fn from(exchange: DiffieHellmanExchange) -> Self {
 		DiffieHellmanExchangePublic {
-			g: exchange.g as u64,
-			n: exchange.n as u64,
+			g:         exchange.g as u64,
+			n:         exchange.n as u64,
 			pk_server: exchange.pk_server(),
 		}
 	}

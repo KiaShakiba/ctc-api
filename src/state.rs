@@ -1,29 +1,26 @@
-use std::{
-	env,
-	sync::MutexGuard,
-};
+use std::{env, sync::MutexGuard};
 
-use serde::{
-	Serialize,
-	de::DeserializeOwned,
-};
-
+use anyhow::anyhow;
+use diesel::{Connection, PgConnection};
 use diesel_async::{
 	AsyncPgConnection,
 	pooled_connection::{
 		AsyncDieselConnectionManager,
-		deadpool::{Pool, Object},
+		deadpool::{Object, Pool},
 	},
 };
-
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use paper_client::{
 	PaperClient,
 	PaperPool,
-	error::{PaperClientError, PaperCacheError},
+	error::{PaperCacheError, PaperClientError},
 };
+use postcard::{from_bytes, to_allocvec};
+use serde::{Serialize, de::DeserializeOwned};
 
-use postcard::{to_allocvec, from_bytes};
 use crate::error::Error;
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 type DbConnection = Object<AsyncPgConnection>;
 
@@ -31,13 +28,15 @@ pub const DEFAULT_TTL: Option<u32> = Some(3_600);
 
 #[derive(Clone)]
 pub struct AppState {
-	db: Pool<AsyncPgConnection>,
+	db:    Pool<AsyncPgConnection>,
 	cache: PaperPool,
 }
 
 impl AppState {
 	pub async fn init() -> anyhow::Result<Self> {
 		let db_addr = env::var("DATABASE_URL")?;
+		run_db_migrations(&db_addr)?;
+
 		let db_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_addr);
 
 		let db = Pool::builder(db_manager)
@@ -56,9 +55,7 @@ impl AppState {
 	}
 
 	pub async fn db(&self) -> Result<DbConnection, Error> {
-		self.db
-			.get().await
-			.map_err(|_| Error::default())
+		self.db.get().await.map_err(|_| Error::default())
 	}
 
 	pub fn cache(&self) -> MutexGuard<'_, PaperClient> {
@@ -71,11 +68,7 @@ pub trait Cacheable {
 
 	fn cache_key(id: Self::Id) -> String;
 
-	fn to_cached(
-		&self,
-		mut cache: MutexGuard<'_, PaperClient>,
-		id: Self::Id,
-	) -> Result<(), Error>
+	fn to_cached(&self, mut cache: MutexGuard<'_, PaperClient>, id: Self::Id) -> Result<(), Error>
 	where
 		Self: Serialize,
 	{
@@ -102,11 +95,18 @@ pub trait Cacheable {
 		Ok(Some(from_bytes::<Self>(&bytes)?))
 	}
 
-	fn purge_cache(
-		mut cache: MutexGuard<'_, PaperClient>,
-		id: Self::Id,
-	) -> Result<(), Error> {
+	fn purge_cache(mut cache: MutexGuard<'_, PaperClient>, id: Self::Id) -> Result<(), Error> {
 		cache.del(Self::cache_key(id))?;
 		Ok(())
 	}
+}
+
+fn run_db_migrations(db_addr: &str) -> anyhow::Result<()> {
+	let mut conn = PgConnection::establish(db_addr)?;
+
+	tracing::info!("running db migrations");
+	conn.run_pending_migrations(MIGRATIONS)
+		.map_err(|err| anyhow!("could not run db migrations: {err}"))?;
+
+	Ok(())
 }

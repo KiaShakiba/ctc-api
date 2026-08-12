@@ -1,25 +1,18 @@
-use std::{
-	env,
-	time::Duration,
-};
+use std::{env, time::Duration};
 
-use num_traits::AsPrimitive;
 use axum::http::StatusCode;
-use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use chrono::{DateTime, Utc};
+use num_traits::AsPrimitive;
 use primal_sieve::Sieve;
-
-use rand::{
-	Rng,
-	seq::{IndexedRandom, IteratorRandom},
-};
+use rand::seq::{IndexedRandom, IteratorRandom};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
-	math,
 	error::Error,
+	math,
+	schema,
 	state::{AppState, Cacheable},
 };
 
@@ -27,22 +20,21 @@ use crate::{
 #[diesel(table_name = schema::dss_verifies)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DssVerify {
-	id: i32,
+	id:          i32,
 	pub user_id: i32,
 
 	n_p: i64,
 	n_q: i64,
-	g: i64,
-	h: String,
-	pk: i64,
-	m: i64,
-	r: i64,
-	s: i64,
+	g:   i64,
+	h:   String,
+	pk:  i64,
+	m:   i64,
+	r:   i64,
+	s:   i64,
 
-	created_at: DateTime<Utc>,
+	created_at:   DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::dss_verifies)]
@@ -51,29 +43,31 @@ struct NewDssVerify {
 
 	n_p: i64,
 	n_q: i64,
-	g: i64,
-	h: String,
-	pk: i64,
-	m: i64,
-	r: i64,
-	s: i64,
+	g:   i64,
+	h:   String,
+	pk:  i64,
+	m:   i64,
+	r:   i64,
+	s:   i64,
 }
 
 #[derive(Serialize)]
 pub struct DssVerifyPublic {
-	p: i64,
-	q: i64,
-	g: i64,
-	h: String,
+	p:  i64,
+	q:  i64,
+	g:  i64,
+	h:  String,
 	pk: i64,
-	m: i64,
-	r: i64,
-	s: i64,
+	m:  i64,
+	r:  i64,
+	s:  i64,
 }
 
 impl DssVerify {
 	pub fn completed_duration(&self) -> Option<Duration> {
-		let delta = self.completed_at?.signed_duration_since(self.created_at);
+		let delta = self
+			.completed_at?
+			.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
 
 		Some(Duration::from_nanos(nanoseconds))
@@ -93,7 +87,8 @@ impl DssVerify {
 			.filter(schema::dss_verifies::user_id.eq(user_id))
 			.filter(schema::dss_verifies::completed_at.is_null())
 			.select(DssVerify::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.next();
 
@@ -105,11 +100,13 @@ impl DssVerify {
 	}
 
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
-		let p_min = env::var("DSS_P_MIN").ok()
+		let p_min = env::var("DSS_P_MIN")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(1_000);
 
-		let p_max = env::var("DSS_P_MAX").ok()
+		let p_max = env::var("DSS_P_MAX")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(10_000);
 
@@ -137,7 +134,10 @@ impl DssVerify {
 				factors = math::prime_factors(p - 1);
 			}
 
-			q = factors.into_iter().last().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+			q = factors
+				.into_iter()
+				.last()
+				.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 			g = 2;
 
 			while math::order(g, p).is_none_or(|order| order != q) && g <= p as u64 {
@@ -154,7 +154,7 @@ impl DssVerify {
 		let mut r: u64;
 
 		loop {
-			k = rand::rng().random_range(1..q);
+			k = rand::random_range(1..q);
 			r = math::safe_mod(math::power_mod(g, k, p), q);
 
 			if r > 0 {
@@ -162,16 +162,16 @@ impl DssVerify {
 			}
 		}
 
-		let sk = rand::rng().random_range(1..q);
+		let sk = rand::random_range(1..q);
 		let pk = math::power_mod(g, sk, p);
 
 		let m_min = p / 2;
 		let m_max = p - 1;
-		let mut m = rand::rng().random_range(m_min..=m_max);
+		let mut m = rand::random_range(m_min..=m_max);
 		let mut digest = get_h_digest(&h, m, q)?;
 
 		while digest == 0 {
-			m = rand::rng().random_range(m_min..=m_max);
+			m = rand::random_range(m_min..=m_max);
 			digest = get_h_digest(&h, m, q)?;
 		}
 
@@ -196,7 +196,8 @@ impl DssVerify {
 		let verify = diesel::insert_into(schema::dss_verifies::table)
 			.values(&new_verify)
 			.returning(DssVerify::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		verify.to_cached(state.cache(), user_id)?;
 
@@ -219,7 +220,8 @@ impl DssVerify {
 		}
 
 		let digest = get_h_digest(&self.h, self.m, self.n_q)?;
-		let s_inv_q = math::inverse_mod(self.s, self.n_q).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+		let s_inv_q =
+			math::inverse_mod(self.s, self.n_q).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		let correct_u = math::safe_mod(digest * s_inv_q, self.n_q);
 		let correct_v = math::safe_mod(math::safe_mod(-self.r, self.n_q) * s_inv_q, self.n_q);
@@ -240,11 +242,13 @@ impl DssVerify {
 
 		let completed = diesel::update(schema::dss_verifies::dsl::dss_verifies.find(self.id))
 			.set(schema::dss_verifies::dsl::completed_at.eq(diesel::dsl::now))
-			.get_result::<Self>(&mut db).await?;
+			.get_result::<Self>(&mut db)
+			.await?;
 
 		DssVerify::purge_cache(state.cache(), self.user_id)?;
 
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		Ok(duration)
@@ -256,7 +260,8 @@ impl DssVerify {
 		let got = schema::dss_verifies::dsl::dss_verifies
 			.filter(schema::dss_verifies::completed_at.is_not_null())
 			.select(DssVerify::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.collect();
 
@@ -265,17 +270,15 @@ impl DssVerify {
 }
 
 fn get_random_h() -> Result<String, Error> {
-	["m mod q", "2m mod q", "3m mod q"]
-		.choose(&mut rand::rng())
-		.map(|value| value.to_string())
-		.ok_or(Error::default())
+	[
+		"m mod q", "2m mod q", "3m mod q",
+	]
+	.choose(&mut rand::rng())
+	.map(|value| value.to_string())
+	.ok_or(Error::default())
 }
 
-fn get_h_digest(
-	h: &str,
-	m: impl AsPrimitive<u64>,
-	q: impl AsPrimitive<u64>,
-) -> Result<u64, Error> {
+fn get_h_digest(h: &str, m: impl AsPrimitive<u64>, q: impl AsPrimitive<u64>) -> Result<u64, Error> {
 	match h {
 		"m mod q" => Ok(math::safe_mod(m.as_(), q.as_())),
 		"2m mod q" => Ok(math::safe_mod(m.as_() * 2, q.as_())),
@@ -296,14 +299,14 @@ impl Cacheable for DssVerify {
 impl From<DssVerify> for DssVerifyPublic {
 	fn from(verify: DssVerify) -> Self {
 		DssVerifyPublic {
-			p: verify.n_p,
-			q: verify.n_q,
-			g: verify.g,
-			h: verify.h,
+			p:  verify.n_p,
+			q:  verify.n_q,
+			g:  verify.g,
+			h:  verify.h,
 			pk: verify.pk,
-			m: verify.m,
-			r: verify.r,
-			s: verify.s,
+			m:  verify.m,
+			r:  verify.r,
+			s:  verify.s,
 		}
 	}
 }

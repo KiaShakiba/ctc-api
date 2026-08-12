@@ -1,8 +1,9 @@
-mod encrypt;
-mod decrypt;
 mod attack;
+mod decrypt;
+mod encrypt;
 
 use axum::Router;
+
 use crate::state::AppState;
 
 pub fn guarded_router() -> Router<AppState> {

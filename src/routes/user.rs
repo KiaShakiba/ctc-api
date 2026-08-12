@@ -1,42 +1,36 @@
-use serde::Deserialize;
-use axum_valid::Valid;
-use validator::Validate;
-use once_cell::sync::Lazy;
-use regex::Regex;
-
-use axum::{
-	Router,
-	extract::{State, Json},
-	routing::post,
-	http::StatusCode,
-	response::IntoResponse,
-};
-
 use argon2::{
 	Argon2,
-	password_hash::{
-		PasswordHash,
-		PasswordHasher,
-		PasswordVerifier,
-		SaltString,
-		rand_core::OsRng,
-	},
+	password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
+use axum::{
+	Router,
+	extract::{Json, State},
+	http::StatusCode,
+	response::IntoResponse,
+	routing::post,
+};
+use axum_valid::Valid;
+use once_cell::sync::Lazy;
+use regex::Regex;
+use serde::Deserialize;
+use validator::Validate;
 
 use crate::{
 	error::Error,
+	models::user::{NewUser, User},
 	state::AppState,
-	models::user::{User, NewUser},
 };
 
-static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
-	Regex::new(r"^[a-zA-Z0-9]*$").unwrap()
-});
+static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9]*$").unwrap());
 
 #[derive(Deserialize, Validate)]
 struct CreateUserBody {
 	#[validate(regex(path = *USERNAME_REGEX, message = "Username can only contain alphanumeric characters."))]
-	#[validate(length(min = 2, max = 16, message = "Username must be between 2 and 16 characters."))]
+	#[validate(length(
+		min = 2,
+		max = 16,
+		message = "Username must be between 2 and 16 characters."
+	))]
 	username: String,
 
 	#[validate(length(min = 6, message = "Password must be at least 6 characters."))]
@@ -53,7 +47,10 @@ async fn create_user(
 		let parsed_hash = PasswordHash::new(&user.password_hash)
 			.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-		if argon2.verify_password(body.password.as_bytes(), &parsed_hash).is_err() {
+		if argon2
+			.verify_password(body.password.as_bytes(), &parsed_hash)
+			.is_err()
+		{
 			let error = Error::default()
 				.with_code(StatusCode::FORBIDDEN)
 				.with_message("Invalid password.");
@@ -88,6 +85,5 @@ pub fn guarded_router() -> Router<AppState> {
 }
 
 pub fn unguarded_router() -> Router<AppState> {
-	Router::new()
-		.route("/", post(create_user))
+	Router::new().route("/", post(create_user))
 }

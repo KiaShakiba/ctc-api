@@ -1,19 +1,19 @@
 use std::env;
-use serde::{Serialize, Deserialize};
-use kwik::time;
 
 use axum::{
-	extract::{State, Extension},
-	http::{StatusCode, Request},
-	middleware::Next,
 	body::Body,
+	extract::{Extension, State},
+	http::{Request, StatusCode},
+	middleware::Next,
 	response::Response,
 };
+use kwik::time;
+use serde::{Deserialize, Serialize};
 
 use crate::{
 	error::Error,
-	state::{AppState, Cacheable},
 	models::user::User,
+	state::{AppState, Cacheable},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

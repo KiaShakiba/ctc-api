@@ -1,18 +1,15 @@
-use std::{
-	env,
-	time::Duration,
-};
+use std::{env, time::Duration};
 
 use axum::http::StatusCode;
-use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use chrono::{DateTime, Utc};
 use rand::distr::{Alphabetic, SampleString};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
 	error::Error,
+	schema,
 	state::{AppState, Cacheable},
 };
 
@@ -20,35 +17,36 @@ use crate::{
 #[diesel(table_name = schema::caesar_decrypts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct CaesarDecrypt {
-	id: i32,
+	id:          i32,
 	pub user_id: i32,
 
-	key: i32,
+	key:    i32,
 	cipher: String,
 
-	created_at: DateTime<Utc>,
+	created_at:   DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::caesar_decrypts)]
 struct NewCaesarDecrypt {
 	user_id: i32,
 
-	key: i32,
+	key:    i32,
 	cipher: String,
 }
 
 #[derive(Serialize)]
 pub struct CaesarDecryptPublic {
-	key: i32,
+	key:    i32,
 	cipher: String,
 }
 
 impl CaesarDecrypt {
 	pub fn completed_duration(&self) -> Option<Duration> {
-		let delta = self.completed_at?.signed_duration_since(self.created_at);
+		let delta = self
+			.completed_at?
+			.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
 
 		Some(Duration::from_nanos(nanoseconds))
@@ -68,7 +66,8 @@ impl CaesarDecrypt {
 			.filter(schema::caesar_decrypts::user_id.eq(user_id))
 			.filter(schema::caesar_decrypts::completed_at.is_null())
 			.select(CaesarDecrypt::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.next();
 
@@ -82,14 +81,14 @@ impl CaesarDecrypt {
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
 		let key = rand::random_range(8..=18);
 
-		let cipher_size = env::var("CAESAR_DECRYPTION_CIPHER_SIZE").ok()
+		let cipher_size = env::var("CAESAR_DECRYPTION_CIPHER_SIZE")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(6);
 
-		let cipher = Alphabetic.sample_string(
-			&mut rand::rng(),
-			cipher_size,
-		).to_uppercase();
+		let cipher = Alphabetic
+			.sample_string(&mut rand::rng(), cipher_size)
+			.to_uppercase();
 
 		let new_decrypt = NewCaesarDecrypt {
 			user_id,
@@ -103,15 +102,21 @@ impl CaesarDecrypt {
 		let decrypt = diesel::insert_into(schema::caesar_decrypts::table)
 			.values(&new_decrypt)
 			.returning(CaesarDecrypt::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		decrypt.to_cached(state.cache(), user_id)?;
 
 		Ok(decrypt)
 	}
 
-	pub async fn try_into_completed(self, state: &AppState, message: String) -> Result<Duration, Error> {
-		let decrypted = self.cipher
+	pub async fn try_into_completed(
+		self,
+		state: &AppState,
+		message: String,
+	) -> Result<Duration, Error> {
+		let decrypted = self
+			.cipher
 			.chars()
 			.map(|char| {
 				let old_ascii_index = char as u8 - 65;
@@ -138,11 +143,13 @@ impl CaesarDecrypt {
 
 		let completed = diesel::update(schema::caesar_decrypts::dsl::caesar_decrypts.find(self.id))
 			.set(schema::caesar_decrypts::dsl::completed_at.eq(diesel::dsl::now))
-			.get_result::<Self>(&mut db).await?;
+			.get_result::<Self>(&mut db)
+			.await?;
 
 		CaesarDecrypt::purge_cache(state.cache(), self.user_id)?;
 
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		Ok(duration)
@@ -154,7 +161,8 @@ impl CaesarDecrypt {
 		let got = schema::caesar_decrypts::dsl::caesar_decrypts
 			.filter(schema::caesar_decrypts::completed_at.is_not_null())
 			.select(CaesarDecrypt::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.collect();
 
@@ -173,7 +181,7 @@ impl Cacheable for CaesarDecrypt {
 impl From<CaesarDecrypt> for CaesarDecryptPublic {
 	fn from(decrypt: CaesarDecrypt) -> Self {
 		CaesarDecryptPublic {
-			key: decrypt.key,
+			key:    decrypt.key,
 			cipher: decrypt.cipher,
 		}
 	}

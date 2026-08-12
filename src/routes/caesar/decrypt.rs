@@ -1,22 +1,21 @@
-use serde::Deserialize;
-use axum_valid::Valid;
-use validator::Validate;
-
 use axum::{
 	Router,
-	extract::{State, Json, Extension},
-	routing::{get, post},
+	extract::{Extension, Json, State},
 	http::StatusCode,
+	routing::{get, post},
 };
+use axum_valid::Valid;
+use serde::Deserialize;
+use validator::Validate;
 
 use crate::{
 	error::Error,
-	state::AppState,
-	models::{
-		user::User,
-		caesar::{CaesarDecrypt, CaesarDecryptPublic},
-	},
 	leaderboard::{Leaderboard, LeaderboardResult},
+	models::{
+		caesar::{CaesarDecrypt, CaesarDecryptPublic},
+		user::User,
+	},
+	state::AppState,
 };
 
 #[derive(Deserialize, Validate)]
@@ -53,7 +52,9 @@ async fn submit_decrypt(
 		return Err(error);
 	};
 
-	let duration = incomplete.try_into_completed(&state, body.message).await?;
+	let duration = incomplete
+		.try_into_completed(&state, body.message)
+		.await?;
 	let message = format!("Correct! This attempt took {duration:?}.");
 
 	Ok((StatusCode::OK, message))
@@ -65,14 +66,16 @@ async fn get_leaderboard(
 	let mut leaderboard = Leaderboard::default();
 
 	for completed in CaesarDecrypt::find_all_completed(&state).await? {
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		if !leaderboard.is_faster_result(completed.user_id, duration) {
 			continue;
 		}
 
-		let user = User::find_by_id(&state, completed.user_id).await?
+		let user = User::find_by_id(&state, completed.user_id)
+			.await?
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		let result = LeaderboardResult {

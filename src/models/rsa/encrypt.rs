@@ -1,24 +1,17 @@
-use std::{
-	env,
-	time::Duration,
-};
+use std::{env, time::Duration};
 
 use axum::http::StatusCode;
-use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use chrono::{DateTime, Utc};
 use primal_sieve::Sieve;
-
-use rand::{
-	Rng,
-	seq::IteratorRandom,
-};
+use rand::{RngExt, seq::IteratorRandom};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
-	math,
 	error::Error,
+	math,
+	schema,
 	state::{AppState, Cacheable},
 };
 
@@ -26,19 +19,18 @@ use crate::{
 #[diesel(table_name = schema::rsa_encrypts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RsaEncrypt {
-	id: i32,
+	id:          i32,
 	pub user_id: i32,
 
 	n_p: i64,
 	n_q: i64,
-	e: i64,
-	d: i64,
-	m: i64,
+	e:   i64,
+	d:   i64,
+	m:   i64,
 
-	created_at: DateTime<Utc>,
+	created_at:   DateTime<Utc>,
 	completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::rsa_encrypts)]
@@ -47,9 +39,9 @@ struct NewRsaEncrypt {
 
 	n_p: i64,
 	n_q: i64,
-	e: i64,
-	d: i64,
-	m: i64,
+	e:   i64,
+	d:   i64,
+	m:   i64,
 }
 
 #[derive(Serialize)]
@@ -63,7 +55,9 @@ pub struct RsaEncryptPublic {
 
 impl RsaEncrypt {
 	pub fn completed_duration(&self) -> Option<Duration> {
-		let delta = self.completed_at?.signed_duration_since(self.created_at);
+		let delta = self
+			.completed_at?
+			.signed_duration_since(self.created_at);
 		let nanoseconds = delta.num_nanoseconds()? as u64;
 
 		Some(Duration::from_nanos(nanoseconds))
@@ -83,7 +77,8 @@ impl RsaEncrypt {
 			.filter(schema::rsa_encrypts::user_id.eq(user_id))
 			.filter(schema::rsa_encrypts::completed_at.is_null())
 			.select(RsaEncrypt::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.next();
 
@@ -95,11 +90,13 @@ impl RsaEncrypt {
 	}
 
 	pub async fn create(state: &AppState, user_id: i32) -> Result<Self, Error> {
-		let pq_min = env::var("RSA_PQ_MIN").ok()
+		let pq_min = env::var("RSA_PQ_MIN")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(1_000);
 
-		let pq_max = env::var("RSA_PQ_MAX").ok()
+		let pq_max = env::var("RSA_PQ_MAX")
+			.ok()
 			.and_then(|value| value.parse::<usize>().ok())
 			.unwrap_or(10_000);
 
@@ -167,7 +164,8 @@ impl RsaEncrypt {
 		let encrypt = diesel::insert_into(schema::rsa_encrypts::table)
 			.values(&new_encrypt)
 			.returning(RsaEncrypt::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		encrypt.to_cached(state.cache(), user_id)?;
 
@@ -187,11 +185,13 @@ impl RsaEncrypt {
 
 		let completed = diesel::update(schema::rsa_encrypts::dsl::rsa_encrypts.find(self.id))
 			.set(schema::rsa_encrypts::dsl::completed_at.eq(diesel::dsl::now))
-			.get_result::<Self>(&mut db).await?;
+			.get_result::<Self>(&mut db)
+			.await?;
 
 		RsaEncrypt::purge_cache(state.cache(), self.user_id)?;
 
-		let duration = completed.completed_duration()
+		let duration = completed
+			.completed_duration()
 			.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
 		Ok(duration)
@@ -203,7 +203,8 @@ impl RsaEncrypt {
 		let got = schema::rsa_encrypts::dsl::rsa_encrypts
 			.filter(schema::rsa_encrypts::completed_at.is_not_null())
 			.select(RsaEncrypt::as_select())
-			.load(&mut db).await?
+			.load(&mut db)
+			.await?
 			.into_iter()
 			.collect();
 

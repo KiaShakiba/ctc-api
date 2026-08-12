@@ -1,12 +1,12 @@
-use serde::{Serialize, Deserialize};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
+use postcard::{from_bytes, to_allocvec};
 use rand::distr::{Alphanumeric, SampleString};
-use postcard::{to_allocvec, from_bytes};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-	schema,
 	error::Error,
+	schema,
 	state::{AppState, Cacheable, DEFAULT_TTL},
 };
 
@@ -16,14 +16,14 @@ use crate::{
 pub struct User {
 	pub id: i32,
 
-	pub username: String,
+	pub username:      String,
 	pub password_hash: String,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::users)]
 pub struct NewUser {
-	pub username: String,
+	pub username:      String,
 	pub password_hash: String,
 }
 
@@ -45,7 +45,11 @@ impl User {
 		let cache_bytes = to_allocvec(self)?;
 
 		cache.set(user_key, &new_bearer_token, DEFAULT_TTL)?;
-		cache.set(format!("bearer:{new_bearer_token}"), cache_bytes, DEFAULT_TTL)?;
+		cache.set(
+			format!("bearer:{new_bearer_token}"),
+			cache_bytes,
+			DEFAULT_TTL,
+		)?;
 
 		Ok(new_bearer_token)
 	}
@@ -60,7 +64,8 @@ impl User {
 		let maybe_user = schema::users::dsl::users
 			.find(id)
 			.select(User::as_select())
-			.first(&mut db).await
+			.first(&mut db)
+			.await
 			.optional()?;
 
 		if let Some(user) = &maybe_user {
@@ -76,12 +81,16 @@ impl User {
 		let got = schema::users::dsl::users
 			.filter(schema::users::username.eq(username))
 			.select(User::as_select())
-			.load(&mut db).await?;
+			.load(&mut db)
+			.await?;
 
 		Ok(got.into_iter().next())
 	}
 
-	pub async fn find_by_bearer(state: &AppState, bearer_token: &str) -> Result<Option<Self>, Error> {
+	pub async fn find_by_bearer(
+		state: &AppState,
+		bearer_token: &str,
+	) -> Result<Option<Self>, Error> {
 		let bearer_key = format!("bearer:{bearer_token}");
 		let mut cache = state.cache();
 
@@ -103,7 +112,8 @@ impl User {
 		let user = diesel::insert_into(schema::users::table)
 			.values(&new_user)
 			.returning(User::as_returning())
-			.get_result(&mut db).await?;
+			.get_result(&mut db)
+			.await?;
 
 		user.to_cached(state.cache(), user.id)?;
 

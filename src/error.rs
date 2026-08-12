@@ -1,29 +1,24 @@
 use std::{
-	fmt::{self, Display},
 	env::VarError,
+	fmt::{self, Display},
 	num::ParseIntError,
 	string::FromUtf8Error,
 };
 
-use diesel::result::Error as DieselError;
-use deadpool_diesel::InteractError;
-use paper_client::PaperClientError;
-use postcard::Error as PostcardError;
-
 use axum::{
 	Error as AxumError,
 	extract::multipart::MultipartError,
-	response::{Response, IntoResponse},
-	http::{
-		StatusCode,
-		HeaderValue,
-		header::CONTENT_TYPE,
-	},
+	http::{HeaderValue, StatusCode, header::CONTENT_TYPE},
+	response::{IntoResponse, Response},
 };
+use deadpool_diesel::InteractError;
+use diesel::result::Error as DieselError;
+use paper_client::PaperClientError;
+use postcard::Error as PostcardError;
 
 #[derive(Debug)]
 pub struct Error {
-	code: StatusCode,
+	code:    StatusCode,
 	message: String,
 }
 

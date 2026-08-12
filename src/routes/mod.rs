@@ -1,10 +1,11 @@
-mod user;
 mod caesar;
 mod diffie_hellman_exchange;
-mod rsa;
 mod dss;
+mod rsa;
+mod user;
 
 use axum::Router;
+
 use crate::state::AppState;
 
 pub fn guarded_router() -> Router<AppState> {
@@ -17,6 +18,5 @@ pub fn guarded_router() -> Router<AppState> {
 }
 
 pub fn unguarded_router() -> Router<AppState> {
-	Router::new()
-		.nest("/user", user::unguarded_router())
+	Router::new().nest("/user", user::unguarded_router())
 }

@@ -1,6 +1,6 @@
 use std::{
+	collections::hash_map::{Entry, HashMap},
 	time::Duration,
-	collections::hash_map::{HashMap, Entry},
 };
 
 use serde::{Serialize, Serializer};
@@ -48,7 +48,7 @@ impl Leaderboard {
 
 fn serialize_duration<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
 where
-	S: Serializer
+	S: Serializer,
 {
 	let value = format!("{duration:?}");
 	serializer.serialize_str(&value)
